@@ -19,6 +19,7 @@ struct gdt_entry {
 
     unsigned char  granularity;   // 세그먼트 크기(0~3 상위 4비트) 및 플래그(4~7 4비트)
     /*
+    플래그
     Bit 3,Granularity,G,Limit의 단위 설정. Limit을 4KB 단위로 계산하여 4GB 메모리를 다 쓰기 위해 1로 설정.
     Bit 2,Size,DB,CPU가 명령어를 16비트로 처리할지 32비트로 처리할지 정함.우리는 32비트 보호 모드를 쓰므로 1 (32비트 모드)로 설정.
     Bit 1,Long Mode,L,64비트 코드를 위한 플래그. 32비트 커널에서는 사용하지 않으므로 0으로 둠.

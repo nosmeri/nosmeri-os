@@ -47,8 +47,8 @@ void pic_remap() {
     outb(0x21, 0x01); // ICW4: 8086 모드 설정
     outb(0xA1, 0x01);
 
-    outb(0x21, 0xFC); // IRQ 0(타이머) 및 IRQ 1(키보드) 활성화 (0xFC = 1111 1100)
-    outb(0xA1, 0xFF); // 슬레이브 PIC의 모든 인터럽트 마스크 (0xFF = 1111 1111)
+    outb(0x21, 0b11111100); // IRQ 0(타이머) 및 IRQ 1(키보드) 활성화 (0xFC = 1111 1100)
+    outb(0xA1, 0b11111111); // 슬레이브 PIC의 모든 인터럽트 마스크 (0xFF = 1111 1111)
 }
 
 void init_pit_timer(unsigned int freq) {

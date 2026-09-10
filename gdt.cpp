@@ -16,7 +16,7 @@ void set_gdt_gate(int num, unsigned int base, unsigned int limit, unsigned char 
     gdt_entries[num].limit_low   = (limit & 0xFFFF);
     gdt_entries[num].granularity = (limit >> 16) & 0x0F;
 
-    gdt_entries[num].granularity |= gran & 0xF0;
+    gdt_entries[num].granularity |= (gran & 0xF) << 4;
     gdt_entries[num].access      = access;
 }
 
@@ -25,19 +25,19 @@ void init_gdt() {
     gdt_record.limit = (sizeof(gdt_entry) * 5) - 1;
     gdt_record.base  = (unsigned int)&gdt_entries;
 
-    // (CF)16 = (11001111)2
+    // (0b1100)
     // Limit을 4KB 단위, 명령어를 32비트로 처리
 
     // 1. Null Descriptor
     set_gdt_gate(0, 0, 0, 0, 0);
-    // 2. Kernel Code Segment (0x9A: 실행 가능, 읽기 가능, Ring 0)
-    set_gdt_gate(1, 0, 0xFFFFF, 0x9A, 0xCF);
-    // 3. Kernel Data Segment (0x92: 쓰기 가능, 읽기 가능, Ring 0)
-    set_gdt_gate(2, 0, 0xFFFFF, 0x92, 0xCF);
-    // 4. User Code Segment (0xFA: Ring 3 권한)
-    set_gdt_gate(3, 0, 0xFFFFF, 0xFA, 0xCF);
-    // 5. User Data Segment (0xF2: Ring 3 권한)
-    set_gdt_gate(4, 0, 0xFFFFF, 0xF2, 0xCF);
+    // 2. Kernel Code Segment (실행 가능, 읽기 가능, Ring 0)
+    set_gdt_gate(1, 0, 0xFFFFF, 0b10011010, 0b1100);
+    // 3. Kernel Data Segment (쓰기 가능, 읽기 가능, Ring 0)
+    set_gdt_gate(2, 0, 0xFFFFF, 0b10010010, 0b1100);
+    // 4. User Code Segment   (실행 가능, 읽기 가능, Ring 3)
+    set_gdt_gate(3, 0, 0xFFFFF, 0b11111010, 0b1100);
+    // 5. User Data Segment   (쓰기 가능, 읽기 가능, Ring 3)
+    set_gdt_gate(4, 0, 0xFFFFF, 0b11110010, 0b1100);
 
 
     // CPU에 GDT 주소를 등록하고 세그먼트 레지스터를 리로드

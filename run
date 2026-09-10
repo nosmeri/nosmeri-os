@@ -11,3 +11,5 @@ g++ -m32 -c string.cpp -o string.o -ffreestanding -O2 -Wall -Wextra -fno-excepti
 ld -m elf_i386 -T linker.ld -o mykernel.bin boot.o kernel.o gdt.o idt.o string.o
 
 qemu-system-i386 -kernel mykernel.bin
+
+rm *.o *.bin 2> /dev/null
