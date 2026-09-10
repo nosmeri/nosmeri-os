@@ -15,7 +15,6 @@ struct idt_ptr {
     unsigned int   base;        // IDT 테이블의 물리 주소
 } __attribute__((packed));
 
-// IDT 초기화 함수 선언
+// IDT 관련 함수 선언
+void set_idt_gate(unsigned char num, unsigned int base, unsigned short sel, unsigned char flags);
 void init_idt();
-
-unsigned int get_tick();
