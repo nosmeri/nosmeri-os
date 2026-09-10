@@ -1,12 +1,15 @@
 #include "idt.h"
 
+volatile unsigned int timer_ticks = 0;
+
 idt_entry idt_entries[256];
 idt_ptr   idt_record;
 
 // 어셈블리에서 정의할 IDT 로드 함수와 예외 핸들러 선언
 extern "C" void idt_load(unsigned int);
-extern "C" void isr0(); // Division by zero 핸들러 예시
-extern "C" void irq1(); // 키보드 인터럽트 핸들러 예시
+extern "C" void isr0(); // Division by zero 핸들러
+extern "C" void irq0(); // 타이머 인터럽트 핸들러
+extern "C" void irq1(); // 키보드 인터럽트 핸들러
 
 // I/O 포트 제어용 인라인 어셈블리 함수
 inline void outb(unsigned short port, unsigned char val) {
@@ -44,11 +47,29 @@ void pic_remap() {
     outb(0x21, 0x01); // ICW4: 8086 모드 설정
     outb(0xA1, 0x01);
 
-    outb(0x21, 0xFD); // IRQ 1(키보드)만 활성화 (0xFD = 1111 1101)
+    outb(0x21, 0xFC); // IRQ 0(타이머) 및 IRQ 1(키보드) 활성화 (0xFC = 1111 1100)
     outb(0xA1, 0xFF); // 슬레이브 PIC의 모든 인터럽트 마스크 (0xFF = 1111 1111)
 }
 
+void init_pit_timer(unsigned int freq) {
+    unsigned int divisor = 1193182 / freq;
+    outb(0x43, 0x36);
+    outb(0x40, (unsigned char)(divisor & 0xFF));
+    outb(0x40, (unsigned char)(divisor >> 8));
+}
+
 extern "C" void handle_keyboard_input(unsigned char scancode);
+
+extern "C" void timer_handler() {
+    timer_ticks++;
+    // PIC에 EOI(인터럽트 종료) 전송
+    // 마스터 PIC 명령 포트: 0x20, EOI 값: 0x20
+    outb(0x20, 0x20);
+}
+
+unsigned int get_tick() {
+    return timer_ticks;
+}
 
 extern "C" void keyboard_handler() {
     // 키보드 데이터 포트 0x60에서 스캔코드를 읽음
@@ -77,6 +98,10 @@ void init_idt() {
 
     // 0번 인터럽트(Divide by Zero)에 핸들러 등록
     set_idt_gate(0, (unsigned int)isr0, 0x08, 0x8E);
+
+    // 32번 인터럽트(IRQ 0, 타이머)에 핸들러 등록
+    set_idt_gate(32, (unsigned int)irq0, 0x08, 0x8E);
+    init_pit_timer(100);
 
     // 33번 인터럽트(IRQ 1, 키보드)에 핸들러 등록
     set_idt_gate(33, (unsigned int)irq1, 0x08, 0x8E);

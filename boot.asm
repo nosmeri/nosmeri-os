@@ -54,8 +54,10 @@ gdt_flush:
 
 global idt_load
 global isr0
+global irq0
 global irq1
 extern isr_handler
+extern timer_handler
 extern keyboard_handler
 
 ; IDTR 레지스터 로드
@@ -67,13 +69,18 @@ idt_load:
 ; 0번 예외(Divide by Zero) 스탑
 isr0:
     pusha           ; 모든 범용 레지스터 백업 (EAX, ECX, EDX 등)
-    
     call isr_handler ; C++ 실제 핸들러 호출
-    
     popa            ; 레지스터 복구
     iret            ; 인터럽트 복귀 (iret은 인터럽트용 특수 리턴 명령어입니다)
 
-; 1번 인터럽트(키보드) 스텁
+; 0번 인터럽트(타이머) 스탑
+irq0:
+    pusha           ; 모든 레지스터 백업
+    call timer_handler
+    popa            ; 레지스터 복구
+    iret
+
+; 1번 인터럽트(키보드) 스탑
 irq1:
     pusha           ; 모든 레지스터 백업
     call keyboard_handler

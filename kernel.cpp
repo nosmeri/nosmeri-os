@@ -3,6 +3,22 @@ int cursor_pos = 0;
 
 #include "gdt.h"
 #include "idt.h"
+#include "string.h"
+
+// I/O 포트 쓰기 (1바이트)
+static inline void outb(unsigned short port, unsigned char val) {
+    __asm__ __volatile__ ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// VGA 하드웨어 커서 위치 갱신
+void update_cursor(short pos) {
+
+    outb(0x3D4, 0x0F);                  // 커서 위치 하위 바이트 레지스터 선택
+    outb(0x3D5, (unsigned char)(pos & 0xFF));
+    outb(0x3D4, 0x0E);                  // 커서 위치 상위 바이트 레지스터 선택
+    outb(0x3D5, (unsigned char)((pos >> 8) & 0xFF));
+}
+
 
 // 미국 QWERTY 스캔코드 셋 1 매핑 테이블
 const char kbd_us[128] = {
@@ -72,6 +88,7 @@ void print_char(char c) {
     if (cursor_pos >= 80 * 25) {
         clear_screen();
     }
+    update_cursor(cursor_pos);
 }
 
 void print_string(const char* str) {
@@ -97,15 +114,15 @@ int input_buffer_len = 0;
 
 void execute_command(const char* cmd) {
     if (strcmp(cmd, "help") == 0) {
-        print_string("PCR-OS Command Shell. Available commands:\n");
+        print_string("NOSMERI-OS Command Shell. Available commands:\n");
         print_string("  help    - Show this help menu\n");
         print_string("  clear   - Clear the screen\n");
         print_string("  sysinfo - Show system configuration information\n");
     } else if (strcmp(cmd, "clear") == 0) {
         clear_screen();
     } else if (strcmp(cmd, "sysinfo") == 0) {
-        print_string("PCR-OS System Information:\n");
-        print_string("  OS Name      : PCR-OS\n");
+        print_string("NOSMERI-OS System Information:\n");
+        print_string("  OS Name      : NOSMERI-OS\n");
         print_string("  Kernel Version: 1.0.0\n");
         print_string("  Architecture : x86 (32-bit)\n");
         print_string("  GDT Status   : Initialized (Active)\n");
@@ -117,6 +134,24 @@ void execute_command(const char* cmd) {
         print_string(cmd);
         print_string("\nType 'help' for available commands.\n");
     }
+}
+
+void print_prompt (){
+    unsigned int tick = get_tick();
+    char time_str[20];
+    char decimal_str[3];
+
+    unsigned int sec = tick / 100;
+    unsigned int decimal = tick % 100;
+
+    itoa(sec, time_str, 10);
+    print_string(time_str);
+    print_char('.');
+    if (decimal < 10) print_char('0');
+    itoa(decimal, decimal_str, 10);
+    print_string(decimal_str);
+
+    print_string("s >");
 }
 
 extern "C" void handle_keyboard_input(unsigned char scancode) {
@@ -136,7 +171,8 @@ extern "C" void handle_keyboard_input(unsigned char scancode) {
                 
                 // 버퍼 초기화 및 프롬프트 재출력
                 input_buffer_len = 0;
-                print_string("> ");
+
+                print_prompt();
             } else if (c == '\b') {
                 // 백스페이스 입력 시 버퍼에 내용이 있을 때만 삭제
                 if (input_buffer_len > 0) {
@@ -168,7 +204,8 @@ extern "C" void kernel_main() {
     // CPU 인터럽트 활성화
     asm volatile("sti");
     print_string("Interrupts enabled.\n");
-    print_string("Welcome to PCR-OS! Type 'help' to see available commands.\n\n> ");
+    print_string("Welcome to NOSMERI-OS! Type 'help' to see available commands.\n\n");
+    print_prompt();
     
     while (true) {}
 }

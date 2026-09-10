@@ -17,3 +17,5 @@ struct idt_ptr {
 
 // IDT 초기화 함수 선언
 void init_idt();
+
+unsigned int get_tick();
