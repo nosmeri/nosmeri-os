@@ -10,6 +10,7 @@ idt_ptr   idt_record;
 // 어셈블리에서 정의된 저수준 핸들러 선언
 extern "C" void idt_load(unsigned int);
 extern "C" void isr0(); // Division by zero 핸들러
+extern "C" void isr14(); // Page fault 핸들러
 extern "C" void irq0(); // 타이머 인터럽트 핸들러
 extern "C" void irq1(); // 키보드 인터럽트 핸들러
 extern "C" void isr80(); // 시스템 콜 인터럽트 핸들러
@@ -39,6 +40,9 @@ void init_idt() {
 
     // 0번 예외(Divide by Zero)에 핸들러 등록
     set_idt_gate(0, (unsigned int)isr0, 0x08, 0x8E);
+
+    // 14번 예외(Page Fault)에 핸들러 등록
+    set_idt_gate(14, (unsigned int)isr14, 0x08, 0x8E);
 
     // 32번 인터럽트(IRQ 0, 타이머)에 핸들러 등록 및 100Hz 타이머 활성화
     set_idt_gate(32, (unsigned int)irq0, 0x08, 0x8E);
