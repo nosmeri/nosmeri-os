@@ -12,9 +12,10 @@ g++ -m32 -c keyboard.cpp -o keyboard.o $CFLAGS
 g++ -m32 -c vga.cpp -o vga.o $CFLAGS
 g++ -m32 -c shell.cpp -o shell.o $CFLAGS
 g++ -m32 -c string.cpp -o string.o $CFLAGS
+g++ -m32 -c syscall.cpp -o syscall.o $CFLAGS
 
 # 3. 오브젝트 파일 링킹
-ld -m elf_i386 -T linker.ld -o mykernel.bin boot.o kernel.o gdt.o idt.o pic.o timer.o keyboard.o vga.o shell.o string.o
+ld -m elf_i386 -T linker.ld -o mykernel.bin boot.o kernel.o gdt.o idt.o pic.o timer.o keyboard.o vga.o shell.o string.o syscall.o
 
 # 4. QEMU 실행
 qemu-system-i386 -kernel mykernel.bin

@@ -26,6 +26,7 @@ enum vga_color {
 // VGA 드라이버 함수 선언
 void vga_init();
 void clear_screen();
+void scroll_screen();
 void update_cursor(short pos);
 void print_char(char c);
 void print_string(const char* str);

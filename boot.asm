@@ -56,9 +56,11 @@ global idt_load
 global isr0
 global irq0
 global irq1
+global isr80
 extern isr_handler
 extern timer_handler
 extern keyboard_handler
+extern syscall_handler
 
 ; IDTR 레지스터 로드
 idt_load:
@@ -86,3 +88,24 @@ irq1:
     call keyboard_handler
     popa            ; 레지스터 복구
     iret
+
+isr80:
+    pusha           ; 1. 범용 레지스터 백업 (EAX ~ EDI)
+    push ds         ; 2. 유저의 세그먼트 레지스터 백업
+    push es
+    push fs
+    push gs
+    mov ax, 0x10    ; 3. GDT 0x10 = 커널 데이터 세그먼트
+    mov ds, ax      ; 커널 세그먼트로 전환 (커널 전역변수/메모리 안전 접근 보장)
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    push esp        ; 스택 포인터를 핸들러의 인자(Registers*)로 전달
+    call syscall_handler
+    add esp, 4
+    pop gs          ; 4. 원래 유저 세그먼트 값으로 복구
+    pop fs
+    pop es
+    pop ds
+    popa            ; 5. 원래 범용 레지스터 복구
+    iret            ; 6. 유저 모드로 안전하게 복귀

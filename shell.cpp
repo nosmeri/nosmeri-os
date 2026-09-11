@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "timer.h"
 #include "string.h"
+#include "syscall.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -41,6 +42,7 @@ void execute_command(const char* cmd) {
         print_string("  help    - Show this help menu\n");
         print_string("  clear   - Clear the screen\n");
         print_string("  sysinfo - Show system configuration information\n");
+        print_string("  test    - Test sys_print system call (int 0x80)\n");
     } else if (strcmp(cmd, "clear") == 0) {
         clear_screen();
     } else if (strcmp(cmd, "sysinfo") == 0) {

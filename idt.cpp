@@ -12,6 +12,7 @@ extern "C" void idt_load(unsigned int);
 extern "C" void isr0(); // Division by zero 핸들러
 extern "C" void irq0(); // 타이머 인터럽트 핸들러
 extern "C" void irq1(); // 키보드 인터럽트 핸들러
+extern "C" void isr80(); // 시스템 콜 인터럽트 핸들러
 
 // IDT 엔트리 설정 함수
 void set_idt_gate(unsigned char num, unsigned int base, unsigned short sel, unsigned char flags) {
@@ -45,6 +46,9 @@ void init_idt() {
 
     // 33번 인터럽트(IRQ 1, 키보드)에 핸들러 등록
     set_idt_gate(33, (unsigned int)irq1, 0x08, 0x8E);
+
+    // 0x80번 인터럽트(시스템 콜): 0xEE (Present=1, DPL=3, Type=Interrupt Gate) 유저 모드 호출 허용
+    set_idt_gate(0x80, (unsigned int)isr80, 0x08, 0xEE);
 
     // CPU에 IDT 주소 로드
     idt_load((unsigned int)&idt_record);

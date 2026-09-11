@@ -43,10 +43,6 @@ static const char kbd_us[128] = {
     0,  /* All other keys are undefined */
 };
 
-void keyboard_init() {
-    // 키보드 IRQ 활성화는 PIC 리매핑 단계에서 이미 unmask됨
-}
-
 // C++ 키보드 스캔코드 처리부
 extern "C" void handle_keyboard_input(unsigned char scancode) {
     // 키 릴리즈(Key Release: 비트 7 세팅) 이벤트는 무시

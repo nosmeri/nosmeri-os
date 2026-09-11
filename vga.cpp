@@ -31,6 +31,22 @@ void clear_screen() {
     update_cursor(cursor_pos);
 }
 
+void scroll_screen() {
+    // 마지막 줄을 제외한 모든 줄을 한 줄씩 위로 올림
+    for (int i = 0; i < VGA_WIDTH * (VGA_HEIGHT - 1); i++) {
+        VIDEO_MEMORY[i] = VIDEO_MEMORY[i + VGA_WIDTH];
+    }
+
+    // 마지막 줄을 공백으로 채움
+    for (int i = VGA_WIDTH * (VGA_HEIGHT - 1); i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        VIDEO_MEMORY[i] = (text_attribute << 8) | ' ';
+    }
+
+    // 커서를 마지막 줄의 처음으로 이동
+    cursor_pos = VGA_WIDTH * (VGA_HEIGHT - 1);
+    update_cursor(cursor_pos);
+}
+
 // VGA 초기화
 void vga_init() {
     clear_screen();
@@ -54,7 +70,7 @@ void print_char(char c) {
 
     // 화면 끝(80 * 25)을 넘어가면 화면 초기화 (추후 스크롤 기능 추가 가능)
     if (cursor_pos >= VGA_WIDTH * VGA_HEIGHT) {
-        clear_screen();
+        scroll_screen();
     }
     update_cursor(cursor_pos);
 }
