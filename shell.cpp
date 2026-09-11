@@ -3,6 +3,7 @@
 #include "timer.h"
 #include "string.h"
 #include "syscall.h"
+#include "pmm.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -42,7 +43,47 @@ void execute_command(const char* cmd) {
         print_string("  help    - Show this help menu\n");
         print_string("  clear   - Clear the screen\n");
         print_string("  sysinfo - Show system configuration information\n");
+        print_string("  meminfo - Show physical memory usage (PMM)\n");
+        print_string("  alloc   - Test allocating a 4KB physical page\n");
         print_string("  test    - Test sys_print system call (int 0x80)\n");
+    } else if (strcmp(cmd, "meminfo") == 0) {
+        char buf[32];
+        print_string("Physical Memory Information (PMM):\n");
+
+        print_string("  Total Memory : ");
+        itoa(pmm_get_total_memory_kb() / 1024, buf, 10);
+        print_string(buf);
+        print_string(" MB (");
+        itoa(pmm_get_total_pages(), buf, 10);
+        print_string(buf);
+        print_string(" pages)\n");
+
+        print_string("  Used Memory  : ");
+        itoa(pmm_get_used_memory_kb(), buf, 10);
+        print_string(buf);
+        print_string(" KB (");
+        itoa(pmm_get_used_pages(), buf, 10);
+        print_string(buf);
+        print_string(" pages)\n");
+
+        print_string("  Free Memory  : ");
+        itoa(pmm_get_free_memory_kb() / 1024, buf, 10);
+        print_string(buf);
+        print_string(" MB (");
+        itoa(pmm_get_free_pages(), buf, 10);
+        print_string(buf);
+        print_string(" pages)\n");
+    } else if (strcmp(cmd, "alloc") == 0) {
+        char buf[32];
+        void* page = pmm_alloc_page();
+        if (page != 0) {
+            print_string("Allocated 4KB Page at Physical Address: 0x");
+            itoa((unsigned int)page, buf, 16);
+            print_string(buf);
+            print_string("\n");
+        } else {
+            print_string("Failed to allocate page: Out of Memory!\n");
+        }
     } else if (strcmp(cmd, "clear") == 0) {
         clear_screen();
     } else if (strcmp(cmd, "sysinfo") == 0) {

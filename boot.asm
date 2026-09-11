@@ -23,7 +23,12 @@ extern kernel_main ; cpp 파일에 선언된 함수
 
 _start:
     mov esp, stack_top ; 스택 포인터 설정
-    call kernel_main   ; cpp 영역으로 진입
+
+    ; Multiboot 부트로더(GRUB/QEMU)가 전달해준 정보 스택에 푸시
+    push ebx           ; 2번째 인자: multiboot_info 구조체 물리 주소
+    push eax           ; 1번째 인자: 멀티부트 매직 넘버 (0x2BADB002)
+
+    call kernel_main   ; cpp 영역으로 진입 (kernel_main(magic, mbi))
     ; 커널에서 비정상적으로 빠져나올시
     cli                ; 모든 인터럽트 무시
 .hang:
