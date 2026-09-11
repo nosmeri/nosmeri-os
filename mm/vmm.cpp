@@ -58,6 +58,8 @@ void vmm_unmap_page(unsigned int virt_addr) {
     unsigned int pd_idx = virt_addr >> 22;
     unsigned int pt_idx = (virt_addr >> 12) & 0x3FF;
 
+    if (!(page_directory[pd_idx] & PAGE_PRESENT)) return;
+
     unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
 
     page_table[pt_idx] = 0;
