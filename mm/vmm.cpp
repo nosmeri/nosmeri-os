@@ -1,3 +1,4 @@
+#include "pmm.h"
 #include "vmm.h"
 #include "vga.h"
 #include "string.h"
@@ -10,6 +11,7 @@ void init_vmm() {
         page_directory[i] = 0;
     }
     page_directory[0] = (unsigned int) first_page_table | PAGE_PRESENT | PAGE_RW;
+    page_directory[1023] = (unsigned int) page_directory | PAGE_PRESENT | PAGE_RW;
 
     for (int i = 0; i < 1024; i++) {
         first_page_table[i] = (unsigned int)(i * 0x1000) | PAGE_PRESENT | PAGE_RW;
@@ -23,6 +25,44 @@ void init_vmm() {
     asm volatile("mov %%cr0, %0" : "=r"(cr0));
     cr0 |= 0x80000000; // PG 비트 설정
     asm volatile("mov %0, %%cr0" : : "r"(cr0));
+}
+
+// 페이지 매핑 함수
+void vmm_map_page(unsigned int virt_addr, unsigned int phys_addr, unsigned int flags) {
+    unsigned int pd_idx = virt_addr >> 22;
+    unsigned int pt_idx = (virt_addr >> 12) & 0x3FF;
+
+    unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
+
+    if (!(page_directory[pd_idx] & PAGE_PRESENT)) {
+        void* new_pt_phys = pmm_alloc_page();
+
+        page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW;
+
+        asm volatile("invlpg (%0)" : : "r"(page_table) : "memory");
+
+        // 새로 만든 페이지 테이블 초기화
+        for (int i = 0; i < 1024; i++) {
+            page_table[i]=0;
+        }
+    }
+
+    // 페이지 테이블에 실제 물리 주소와 플래그 설정
+    page_table[pt_idx] = (phys_addr & ~0xFFF) | flags;
+
+    // CPU TLB 캐시 갱신
+    asm volatile("invlpg (%0)" : : "r"(virt_addr) : "memory");
+}
+
+void vmm_unmap_page(unsigned int virt_addr) {
+    unsigned int pd_idx = virt_addr >> 22;
+    unsigned int pt_idx = (virt_addr >> 12) & 0x3FF;
+
+    unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
+
+    page_table[pt_idx] = 0;
+
+    asm volatile("invlpg (%0)" : : "r"(virt_addr) : "memory");
 }
 
 // 14번 Page Fault 예외 핸들러
