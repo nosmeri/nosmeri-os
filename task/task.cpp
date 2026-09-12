@@ -71,6 +71,13 @@ void schedule() {
     
     Task* prev = current_task;
     Task* next = current_task->next;
+
+    if (prev->state == TASK_RUNNING) {
+        prev->state = TASK_READY;
+    }
+
+    next->state = TASK_RUNNING;
+
     current_task = next;
     switch_context(prev, next); 
 }
