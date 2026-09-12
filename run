@@ -15,12 +15,13 @@ g++ $CFLAGS -c drivers/keyboard.cpp -o keyboard.o
 g++ $CFLAGS -c drivers/vga.cpp -o vga.o
 g++ $CFLAGS -c mm/pmm.cpp -o pmm.o
 g++ $CFLAGS -c mm/vmm.cpp -o vmm.o
+g++ $CFLAGS -c mm/heap.cpp -o heap.o
 g++ $CFLAGS -c lib/string.cpp -o string.o
 g++ $CFLAGS -c shell/shell.cpp -o shell.o
 
 # 3. 오브젝트 파일 링킹
 ld -m elf_i386 -T arch/x86/linker.ld -o mykernel.bin \
-    boot.o kernel.o gdt.o idt.o syscall.o pic.o timer.o keyboard.o vga.o pmm.o vmm.o string.o shell.o
+    boot.o kernel.o gdt.o idt.o syscall.o pic.o timer.o keyboard.o vga.o pmm.o vmm.o heap.o string.o shell.o
 
 # 4. QEMU 실행
 qemu-system-i386 -m 3G -kernel mykernel.bin

@@ -4,6 +4,7 @@
 #include "shell.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "heap.h"
 
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 1. 화면 드라이버 초기화
@@ -27,6 +28,11 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 4-2. 가상 메모리 관리자(VMM) 초기화
     print_string("Initializing Virtual Memory Manager...");
     init_vmm();
+    print_string(" Done.\n");
+
+    // 4-3. 가상 힙 초기화
+    print_string("Initializing Heap...");
+    init_heap();
     print_string(" Done.\n");
 
     // 5. CPU 인터럽트 활성화
