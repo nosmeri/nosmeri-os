@@ -46,7 +46,7 @@ void init_idt() {
 
     // 32번 인터럽트(IRQ 0, 타이머)에 핸들러 등록 및 100Hz 타이머 활성화
     set_idt_gate(32, (unsigned int)irq0, 0x08, 0x8E);
-    init_pit_timer(100);
+    init_pit_timer(TIMER_FREQ);
 
     // 33번 인터럽트(IRQ 1, 키보드)에 핸들러 등록
     set_idt_gate(33, (unsigned int)irq1, 0x08, 0x8E);

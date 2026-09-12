@@ -11,8 +11,10 @@ void init_vmm() {
         page_directory[i] = 0;
     }
     page_directory[0] = (unsigned int) first_page_table | PAGE_PRESENT | PAGE_RW;
+    // 재귀 접근을 위한 매핑
     page_directory[1023] = (unsigned int) page_directory | PAGE_PRESENT | PAGE_RW;
 
+    // 초기 테이블 물리주소와 1:1 매핑
     for (int i = 0; i < 1024; i++) {
         first_page_table[i] = (unsigned int)(i * 0x1000) | PAGE_PRESENT | PAGE_RW;
     }
@@ -32,13 +34,16 @@ void vmm_map_page(unsigned int virt_addr, unsigned int phys_addr, unsigned int f
     unsigned int pd_idx = virt_addr >> 22;
     unsigned int pt_idx = (virt_addr >> 12) & 0x3FF;
 
+    // 재귀 페이징을 이용한 페이지 테이블 접근
     unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
 
+    // 필요한 페이지 테이블이 없다면 할당
     if (!(page_directory[pd_idx] & PAGE_PRESENT)) {
         void* new_pt_phys = pmm_alloc_page();
 
         page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW;
 
+        // TLB 갱신 (재귀 페이징을 사용하므로 직접 페이지 테이블 주소를 인자로 넘김)
         asm volatile("invlpg (%0)" : : "r"(page_table) : "memory");
 
         // 새로 만든 페이지 테이블 초기화

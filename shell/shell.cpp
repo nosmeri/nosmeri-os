@@ -15,8 +15,8 @@ void print_prompt() {
     char time_str[20];
     char decimal_str[3];
 
-    unsigned int sec = tick / 100;
-    unsigned int decimal = tick % 100;
+    unsigned int sec = tick / TIMER_FREQ;
+    unsigned int decimal = tick % TIMER_FREQ;
 
     itoa(sec, time_str, 10);
     print_string(time_str);
