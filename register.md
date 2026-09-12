@@ -34,11 +34,13 @@
 연산 결과와 CPU 동작 제어 상태를 비트 단위로 저장합니다.
 
 ### 상태 플래그 (Status Flags)
+
 * **`ZF` (Zero Flag, Bit 6):** 연산 결과가 0이거나 비교 값이 같을 때 1로 세트됩니다.
 * **`CF` (Carry Flag, Bit 0):** 부호 없는 덧셈/뺄셈에서 올림/빌림 발생 시 세트됩니다.
 * **`SF` (Sign Flag, Bit 7):** 연산 결과가 음수(최상위 비트가 1)일 때 세트됩니다.
 
 ### 시스템 제어 플래그 (System Control Flags)
+
 * **`IF` (Interrupt Enable Flag, Bit 9):** 외부 하드웨어 인터럽트 허용 여부를 결정합니다. (`sti` 명령어로 1, `cli` 명령어로 0 세트)
 * **`DF` (Direction Flag, Bit 10):** 연속 메모리 작업 시 주소의 증가(`cld`) 또는 감소(`std`) 방향을 결정합니다.
 
