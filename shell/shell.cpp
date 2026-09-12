@@ -8,15 +8,6 @@
 static char input_buffer[256];
 static int input_buffer_len = 0;
 
-// C 스타일 문자열 비교용 strcmp 직접 구현
-int strcmp(const char* s1, const char* s2) {
-    while (*s1 && (*s1 == *s2)) {
-        s1++;
-        s2++;
-    }
-    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
-}
-
 // 쉘 프롬프트 출력 ([초].[소수]s >)
 void print_prompt() {
     unsigned int tick = get_tick();

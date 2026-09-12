@@ -44,11 +44,6 @@ void itoa(unsigned int num, char *str, int base) {
     reverse_string(str, i);
 }
 
-
-
-
-// 숫자를 문자열로 변환하는 함수
-// num: 변환할 숫자, str: 결과가 저장될 버퍼, base: 진법 (10진수=10, 16진수=16)
 void itoa(int num, char *str, int base) {
     int i = 0;
     char is_negative = false;
@@ -88,4 +83,39 @@ void itoa(int num, char *str, int base) {
 
     // 현재 버퍼에는 역순으로(예: 123 -> "321") 들어있으므로 뒤집어줌
     reverse_string(str, i);
+}
+
+// C 스타일 문자열 비교용 strcmp 직접 구현
+int strcmp(const char* s1, const char* s2) {
+    while (*s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
+// 메모리 초기화
+void* memset(void* dest, int val, unsigned int count) {
+    unsigned char* dst_ptr = (unsigned char*)dest;
+    for (unsigned int i=0; i<count; i++) {
+        dst_ptr[i] = (unsigned char)val;
+    }
+    return dest;
+}
+
+// 메모리 복사
+void* memcpy(void* dest, const void* src, unsigned int count) {
+    unsigned char* dst_ptr = (unsigned char*)dest;
+    unsigned char* src_ptr = (unsigned char*)src;
+    for (unsigned int i=0; i<count; i++) {
+        dst_ptr[i] = src_ptr[i];
+    }
+    return dest;
+}
+
+// 문자열 길이 계산
+unsigned int strlen(const char* str) {
+    unsigned int cnt;
+    for (cnt=0; str[cnt] != '\0'; cnt++);
+    return cnt;
 }
