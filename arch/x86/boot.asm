@@ -145,3 +145,6 @@ isr80:
     pop ds
     popa            ; 5. 원래 범용 레지스터 복구
     iret            ; 6. 유저 모드로 안전하게 복귀
+
+
+section .note.GNU-stack noalloc noexec nowrite progbits ; ld: warning: boot.o: missing .note.GNU-stack section implies executable stack 경고 없애기
