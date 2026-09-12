@@ -41,7 +41,7 @@ void vmm_map_page(unsigned int virt_addr, unsigned int phys_addr, unsigned int f
     if (!(page_directory[pd_idx] & PAGE_PRESENT)) {
         void* new_pt_phys = pmm_alloc_page();
 
-        page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW;
+        page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW | PAGE_USER;
 
         // TLB 갱신 (재귀 페이징을 사용하므로 직접 페이지 테이블 주소를 인자로 넘김)
         asm volatile("invlpg (%0)" : : "r"(page_table) : "memory");

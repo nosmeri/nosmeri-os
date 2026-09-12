@@ -146,5 +146,22 @@ isr80:
     popa            ; 5. 원래 범용 레지스터 복구
     iret            ; 6. 유저 모드로 안전하게 복귀
 
+global switch_context
+switch_context:
+    ; 현재 테스크 context 저장
+    pushfd ; EFLAGS 저장
+    pusha ; EAX, ECX, EDX, EBX, temp_esp, EBP, ESI, EDI 저장
+
+    ; 인자로 전달받은 prev, next 포인터 꺼내기
+    ; 스택: [esp] = pusha, [esp+32] = pushfd, [esp+36] = 리턴주소, [esp+40] = prev, [esp+44] = next
+    mov eax, [esp + 40] ; eax = prev task
+    mov edx, [esp + 44] ; edx = next task
+
+    mov [eax + 4], esp
+    mov esp, [edx + 4]
+
+    popa
+    popfd
+    ret
 
 section .note.GNU-stack noalloc noexec nowrite progbits ; ld: warning: boot.o: missing .note.GNU-stack section implies executable stack 경고 없애기

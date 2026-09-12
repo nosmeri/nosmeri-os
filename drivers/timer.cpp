@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "io.h"
 #include "pic.h"
+#include "task.h"
 
 static volatile unsigned int timer_ticks = 0;
 
@@ -30,6 +31,9 @@ void sleep(unsigned int ms) {
 // IRQ0 타이머 인터럽트 핸들러 (100Hz 주기 호출)
 extern "C" void timer_handler() {
     timer_ticks++;
+
     // PIC에 EOI 전송 (IRQ 0)
     pic_send_eoi(0);
+    
+    schedule();
 }

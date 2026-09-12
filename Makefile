@@ -6,7 +6,7 @@ QEMU = qemu-system-i386
 
 # 플래그 설정
 CXXFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti -fno-use-cxa-atexit \
-           -Iarch/x86 -Idrivers -Imm -Ilib -Ishell
+           -Iarch/x86 -Idrivers -Imm -Ilib -Ishell -Itask
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T arch/x86/linker.ld
 
@@ -26,6 +26,7 @@ CPP_SRCS = kernel.cpp \
            mm/pmm.cpp \
            mm/vmm.cpp \
            mm/heap.cpp \
+           task/task.cpp \
            lib/string.cpp \
            shell/shell.cpp
 
