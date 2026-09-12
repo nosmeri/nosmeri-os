@@ -4,6 +4,7 @@
 #include "string.h"
 #include "syscall.h"
 #include "pmm.h"
+#include "heap.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -38,6 +39,9 @@ void execute_command(const char* cmd) {
         print_string("  alloc   - Test allocating a 4KB physical page\n");
         print_string("  test    - Test sys_print system call (int 0x80)\n");
         print_string("  fault   - Trigger a Page Fault exception (read unmapped address)\n");
+        print_string("  heap    - Display kernel heap memory blocks\n");
+    } else if (strcmp(cmd, "heap") == 0) {
+        heap_dump();
     } else if (strcmp(cmd, "fault") == 0) {
         print_string("Deliberately accessing unmapped address 0xA0000000 to trigger Page Fault...\n");
         // 0~4MB만 매핑되어 있으므로 0xA0000000은 매핑되지 않은 주소 -> Page Fault 발생!

@@ -1,6 +1,8 @@
 #include "heap.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "vga.h"
+#include "string.h"
 
 static struct block_header* heap_head;
 static unsigned int heap_current_end;
@@ -77,4 +79,55 @@ void kfree(void* ptr) {
         }
 
     }
+}
+
+void heap_dump() {
+    block_header* curr = heap_head;
+    char buff[16];
+
+    print_string("=== KERNEL HEAP DUMP ===\n");
+
+    unsigned int block_cnt = 0;
+    unsigned int used_cnt = 0;
+    unsigned int free_cnt = 0;
+
+    while (curr != 0) {
+        print_string("[#");
+        itoa(block_cnt, buff, 10);
+        print_string(buff);
+        print_string("] Addr: 0x");
+        
+        itoa((unsigned int)curr, buff, 16);
+        print_string(buff);
+
+        print_string(" | Size:");
+        
+        itoa(curr->size, buff, 10);
+        print_string(buff);
+        
+        print_string(" | Status: ");
+        print_string(curr->is_free ? "[FREE]" : "[USED]");
+        print_char('\n');
+        
+        
+        block_cnt++;
+        if (curr->is_free) free_cnt++;
+        else used_cnt++;
+        
+        curr = curr->next;
+    }
+
+    print_string("--------------------------------------------------\nTotal Blocks: ");
+
+    itoa(block_cnt, buff, 10);
+    print_string(buff);
+    print_string(" (Used: ");
+
+    itoa(used_cnt, buff, 10);
+    print_string(buff);
+    print_string(", Free: ");
+
+    itoa(free_cnt, buff, 10);
+    print_string(buff);
+    print_string(")\n");
 }

@@ -14,3 +14,4 @@ struct block_header {
 void init_heap();
 void* kmalloc(unsigned int size);
 void kfree(void* ptr);
+void heap_dump();
