@@ -18,3 +18,4 @@ void init_tasking();
 Task* create_task(void (*entry_point)());
 void task_yield();
 void schedule();
+void task_dump();

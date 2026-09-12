@@ -3,7 +3,7 @@
 #define TIMER_FREQ 100
 
 // PIT (Programmable Interval Timer) 초기화 및 틱/딜레이 제어
-void init_pit_timer(unsigned int freq);
+void init_pit_timer();
 unsigned int get_tick();
 void sleep(unsigned int ms);
 

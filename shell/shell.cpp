@@ -5,6 +5,7 @@
 #include "syscall.h"
 #include "pmm.h"
 #include "heap.h"
+#include "task.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -40,6 +41,9 @@ void execute_command(const char* cmd) {
         print_string("  test    - Test sys_print system call (int 0x80)\n");
         print_string("  fault   - Trigger a Page Fault exception (read unmapped address)\n");
         print_string("  heap    - Display kernel heap memory blocks\n");
+        print_string("  ps      - List all running tasks/processes\n");
+    } else if (strcmp(cmd, "ps") == 0) {
+        task_dump();
     } else if (strcmp(cmd, "heap") == 0) {
         heap_dump();
     } else if (strcmp(cmd, "fault") == 0) {
@@ -130,6 +134,21 @@ void shell_handle_key(char c) {
 // 쉘 초기화
 void shell_init() {
     input_buffer_len = 0;
+    create_task(spinner);
     print_string("Welcome to NOSMERI-OS! Type 'help' to see available commands.\n\n");
     print_prompt();
+}
+
+
+void spinner() {
+    volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
+    const char spinner[] = {'|', '/', '-', '\\'};
+    int idx = 0;
+    while (true) {
+        // 우측 상단 (0행 79열)에 녹색 스피너 표시
+        vga[79] = (unsigned short)(spinner[idx % 4] | (0x0A << 8));
+        idx++;
+        // 약간의 딜레이
+        sleep(100);
+    }
 }

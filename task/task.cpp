@@ -74,3 +74,35 @@ void schedule() {
     current_task = next;
     switch_context(prev, next); 
 }
+
+void task_dump() {
+    if (!current_task) return;
+    print_string("PID   STATE     ESP         STACK_ADDR\n");
+    print_string("-----------------------------------------\n");
+    Task* t = current_task;
+    char buf[32];
+    do {
+        print_string(" ");
+        itoa(t->id, buf, 10);
+        print_string(buf);
+        print_string("     ");
+        if (t == current_task) {
+            print_string("RUNNING   ");
+        } else if (t->state == TASK_READY) {
+            print_string("READY     ");
+        } else if (t->state == TASK_SLEEPING) {
+            print_string("SLEEPING  ");
+        } else {
+            print_string("DEAD      ");
+        }
+        print_string("0x");
+        itoa(t->esp, buf, 16);
+        print_string(buf);
+        print_string("  ");
+        print_string("0x");
+        itoa((unsigned int)t->stack_bottom, buf, 16);
+        print_string(buf);
+        print_string("\n");
+        t = t->next;
+    } while (t != current_task);
+}
