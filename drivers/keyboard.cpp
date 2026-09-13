@@ -47,6 +47,17 @@ static const char kbd_us[128] = {
     0,  /* All other keys are undefined */
 };
 
+static void enqueue_key(char c) {
+    // 큐가 가득 찼는지 검사 (선택 사항: 가득 찼으면 무시)
+    unsigned int next_head = (keyboard_head + 1) % 128;
+    if (next_head == keyboard_tail) {
+        return; // 버퍼 꽉 참!
+    }
+
+    keyboard_buffer[keyboard_head] = c;
+    keyboard_head = next_head; // 언제나 0~127 유지!
+}
+
 // C++ 키보드 스캔코드 처리부
 void handle_keyboard_input(unsigned char scancode) {
     // 키 릴리즈(Key Release: 비트 7 세팅) 이벤트는 무시
@@ -71,17 +82,6 @@ extern "C" void keyboard_handler() {
 
     // PIC에 EOI 전송 (IRQ 1)
     pic_send_eoi(1);
-}
-
-static void enqueue_key(char c) {
-    // 큐가 가득 찼는지 검사 (선택 사항: 가득 찼으면 무시)
-    unsigned int next_head = (keyboard_head + 1) % 128;
-    if (next_head == keyboard_tail) {
-        return; // 버퍼 꽉 참!
-    }
-
-    keyboard_buffer[keyboard_head] = c;
-    keyboard_head = next_head; // 언제나 0~127 유지!
 }
 
 char dequeue_key() {
