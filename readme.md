@@ -25,10 +25,15 @@ make clean
 
 ## TODO
 
-- [x] Makefile 도입 및 빌드 시스템 최적화
+- [x] GDT & IDT 및 하드웨어 인터럽트 (PIC, PIT, 키보드)
+- [x] 물리 메모리 관리자 (PMM)
+- [x] 가상 메모리 관리자 (VMM 페이징)
+- [x] 커널 힙 메모리 관리자 (kmalloc / kfree)
+- [x] 시스템 콜 (int 0x80)
 - [x] 멀티태스킹 (태스크 제어 블록 & 라운드 로빈 스케줄러)
+- [x] 셸 연동 및 프로세스 모니터링 (ps 명령어)
 - [x] Non-blocking Task Sleep
 - [x] task kill
 - [x] 키보드 버퍼 큐 + 셸 태스크 분리
-- [ ] 파일시스템 (가상 파일 시스템 VFS & Ramdisk)
 - [ ] exit task
+- [ ] 파일시스템 (가상 파일 시스템 VFS & Ramdisk)
