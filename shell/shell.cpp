@@ -42,6 +42,21 @@ void execute_command(const char* cmd) {
         print_string("  fault   - Trigger a Page Fault exception (read unmapped address)\n");
         print_string("  heap    - Display kernel heap memory blocks\n");
         print_string("  ps      - List all running tasks/processes\n");
+        print_string("  kill    - Terminate a task by PID (e.g. kill 1)\n");
+    } else if (strncmp(cmd, "kill ", 5) == 0) {
+        const char* arg = cmd + 5;
+        while (*arg == ' ') arg++;
+
+        if (*arg == '\0') {
+            print_string("Usage: kill <pid>\n");
+        } else {
+            int pid = atoi(arg);
+            if (kill_task((unsigned int)pid) != -1) {
+                print_string("Task killed successfully.\n");
+            } else {
+                print_string("Failed to kill task (invalid PID or kernel task).\n");
+            }
+        }
     } else if (strcmp(cmd, "ps") == 0) {
         task_dump();
     } else if (strcmp(cmd, "heap") == 0) {

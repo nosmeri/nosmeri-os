@@ -95,7 +95,7 @@ void task_yield() {
 }
 
 void schedule() {
-    // 
+    // 태스크가 없거나 1개면 스케쥴링 X
     if (!current_task || current_task->next == current_task) return;
     
     Task* prev = current_task;
@@ -118,6 +118,29 @@ void schedule() {
 
     current_task = next;
     switch_context(prev, next); 
+}
+
+int kill_task(unsigned int pid) {
+    if (!current_task) return -1;
+    if (pid == 0) {
+        return -1;
+    }
+
+    Task* t = current_task->next;
+    Task* prev = current_task;
+    do {
+        if (t->id == pid) {
+            prev->next = t->next;
+            kfree(t->stack_bottom);
+            kfree(t);
+
+            return pid;
+        }
+        prev = t;
+        t = t->next;
+    } while (t != current_task);
+
+    return -1;
 }
 
 void task_dump() {

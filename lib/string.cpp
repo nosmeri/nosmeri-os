@@ -85,6 +85,27 @@ void itoa(int num, char *str, int base) {
     reverse_string(str, i);
 }
 
+int atoi(const char* str) {
+    int res = 0;
+    int sign = 1;
+    int i = 0;
+    // 공백 건너뛰기
+    while (str[i] == ' ') i++;
+    // 부호 처리
+    if (str[i] == '-') {
+        sign = -1;
+        i++;
+    } else if (str[i] == '+') {
+        i++;
+    }
+    // 숫자 파싱
+    while (str[i] >= '0' && str[i] <= '9') {
+        res = res * 10 + (str[i] - '0');
+        i++;
+    }
+    return res * sign;
+}
+
 // C 스타일 문자열 비교용 strcmp 직접 구현
 int strcmp(const char* s1, const char* s2) {
     while (*s1 && (*s1 == *s2)) {
@@ -92,6 +113,18 @@ int strcmp(const char* s1, const char* s2) {
         s2++;
     }
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
+int strncmp(const char* s1, const char* s2, unsigned int n) {
+    for (unsigned int i = 0; i < n; i++) {
+        if (s1[i] != s2[i]) {
+            return (unsigned char)s1[i] - (unsigned char)s2[i];
+        }
+        if (s1[i] == '\0') {
+            return 0;
+        }
+    }
+    return 0;
 }
 
 // 메모리 초기화
