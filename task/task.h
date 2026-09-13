@@ -1,5 +1,7 @@
 #pragma once
 
+#define TASK_STACK_SIZE 1024
+
 enum TaskState {
     TASK_READY,
     TASK_RUNNING,

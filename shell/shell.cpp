@@ -134,21 +134,6 @@ void shell_handle_key(char c) {
 // 쉘 초기화
 void shell_init() {
     input_buffer_len = 0;
-    create_task(spinner);
     print_string("Welcome to NOSMERI-OS! Type 'help' to see available commands.\n\n");
     print_prompt();
-}
-
-
-void spinner() {
-    volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
-    const char spinner[] = {'|', '/', '-', '\\'};
-    int idx = 0;
-    while (true) {
-        // 우측 상단 (0행 79열)에 녹색 스피너 표시
-        vga[79] = (unsigned short)(spinner[idx % 4] | (0x0A << 8));
-        idx++;
-        // 약간의 딜레이
-        sleep(100);
-    }
 }

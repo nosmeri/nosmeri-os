@@ -3,8 +3,6 @@
 #include "vga.h"
 #include "string.h"
 #include "timer.h"
-#include "gdt.h"
-#include "pmm.h"
 
 static Task kernel_task;
 static Task* current_task = 0;
@@ -15,7 +13,7 @@ static unsigned int next_pid = 0;
 // 프로세스 생성 (fork 원리)
 Task* create_task(void (*entry_point)()) {
     // 태스크 스택(4KB) 할당
-    void* stack_mem = kmalloc(1024);
+    void* stack_mem = kmalloc(TASK_STACK_SIZE);
     if (!stack_mem) return 0;
 
     Task* new_task = (Task*)kmalloc(sizeof(Task));
@@ -25,7 +23,7 @@ Task* create_task(void (*entry_point)()) {
     }
 
     // 스택 초기화
-    unsigned int* stack_top = (unsigned int*)((unsigned int)stack_mem + 1024 );
+    unsigned int* stack_top = (unsigned int*)((unsigned int)stack_mem + TASK_STACK_SIZE);
 
     // ret가 점프할 함수 주소
     stack_top[-1] = (unsigned int)entry_point;
@@ -93,14 +91,19 @@ void task_dump() {
         itoa(t->id, buf, 10);
         print_string(buf);
         print_string("     ");
-        if (t == current_task) {
-            print_string("RUNNING   ");
-        } else if (t->state == TASK_READY) {
-            print_string("READY     ");
-        } else if (t->state == TASK_SLEEPING) {
-            print_string("SLEEPING  ");
-        } else {
-            print_string("DEAD      ");
+        switch (t->state) {
+            case TASK_RUNNING:
+                print_string("RUNNING   ");
+                break;
+            case TASK_READY:
+                print_string("READY     ");
+                break;
+            case TASK_SLEEPING:
+                print_string("SLEEPING  ");
+                break;
+            default:
+                print_string("DEAD      ");
+                break;
         }
         print_string("0x");
         itoa(t->esp, buf, 16);

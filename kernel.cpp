@@ -6,6 +6,20 @@
 #include "vmm.h"
 #include "heap.h"
 #include "task.h"
+#include "timer.h"
+
+void spinner() {
+    volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
+    const char spinner[] = {'|', '/', '-', '\\'};
+    int idx = 0;
+    while (true) {
+        // 우측 상단 (0행 79열)에 녹색 스피너 표시
+        vga[79] = (unsigned short)(spinner[idx % 4] | (0x0A << 8));
+        idx++;
+        // 약간의 딜레이
+        sleep(100);
+    }
+}
 
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 1. 화면 드라이버 초기화
@@ -39,6 +53,7 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 멀티태스킹 초기화
     print_string("Initializing Task...");
     init_tasking();
+    create_task(spinner);
     print_string(" Done.\n");
 
     // CPU 인터럽트 활성화
