@@ -6,6 +6,7 @@
 #include "pmm.h"
 #include "heap.h"
 #include "task.h"
+#include "keyboard.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -147,8 +148,17 @@ void shell_handle_key(char c) {
 }
 
 // 쉘 초기화
-void shell_init() {
+void shell_main() {
     input_buffer_len = 0;
     print_string("Welcome to NOSMERI-OS! Type 'help' to see available commands.\n\n");
     print_prompt();
+    while (1) {
+        if (buffer_has_char()) {
+            char c = dequeue_key();
+            shell_handle_key(c);
+        } else {
+            task_yield();
+            __asm__ __volatile__ ("hlt");
+        }
+    }
 }

@@ -60,10 +60,6 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     print_string("Interrupts enabled.\n\n");
 
     // 쉘 시작
-    shell_init();
+    shell_main();
 
-    // Idle loop
-    while (true) {
-        __asm__ __volatile__ ("hlt");
-    }
 }

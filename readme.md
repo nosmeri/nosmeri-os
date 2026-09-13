@@ -29,6 +29,6 @@ make clean
 - [x] 멀티태스킹 (태스크 제어 블록 & 라운드 로빈 스케줄러)
 - [x] Non-blocking Task Sleep
 - [x] task kill
+- [x] 키보드 버퍼 큐 + 셸 태스크 분리
 - [ ] 파일시스템 (가상 파일 시스템 VFS & Ramdisk)
-- [ ] 키보드 버퍼 큐 + 셸 태스크 분리
 - [ ] exit task

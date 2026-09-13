@@ -3,21 +3,25 @@
 #include "pic.h"
 #include "shell.h"
 
+static char keyboard_buffer[128];
+static unsigned int keyboard_head = 0;
+static unsigned int keyboard_tail = 0;
+
 // 미국 QWERTY 스캔코드 셋 1 매핑 테이블
 static const char kbd_us[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
-  '9', '0', '-', '=', '\b', /* Backspace */
-  '\t',                 /* Tab */
-  'q', 'w', 'e', 'r',   /* 19 */
-  't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', /* Enter key */
+    '9', '0', '-', '=', '\b', /* Backspace */
+    '\t',                 /* Tab */
+    'q', 'w', 'e', 'r',   /* 19 */
+    't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', /* Enter key */
     0,                  /* 29   - Control */
-  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', /* 39 */
- '\'', '`',   0,        /* Left shift */
- '\\', 'z', 'x', 'c', 'v', 'b', 'n',            /* 49 */
-  'm', ',', '.', '/',   0,              /* Right shift */
-  '*',
+    'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', /* 39 */
+    '\'', '`',   0,        /* Left shift */
+    '\\', 'z', 'x', 'c', 'v', 'b', 'n',            /* 49 */
+    'm', ',', '.', '/',   0,              /* Right shift */
+    '*',
     0,  /* Alt */
-  ' ',  /* Space bar */
+    ' ',  /* Space bar */
     0,  /* Caps lock */
     0,  /* 59 - F1 key ... > */
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -27,11 +31,11 @@ static const char kbd_us[128] = {
     0,  /* Home key */
     0,  /* Up Arrow */
     0,  /* Page Up */
-  '-',
+    '-',
     0,  /* Left Arrow */
     0,
     0,  /* Right Arrow */
-  '+',
+    '+',
     0,  /* 79 - End key*/
     0,  /* Down Arrow */
     0,  /* Page Down */
@@ -44,7 +48,7 @@ static const char kbd_us[128] = {
 };
 
 // C++ 키보드 스캔코드 처리부
-extern "C" void handle_keyboard_input(unsigned char scancode) {
+void handle_keyboard_input(unsigned char scancode) {
     // 키 릴리즈(Key Release: 비트 7 세팅) 이벤트는 무시
     if (scancode & 0x80) {
         return;
@@ -53,7 +57,7 @@ extern "C" void handle_keyboard_input(unsigned char scancode) {
     if (scancode < 128) {
         char c = kbd_us[scancode];
         if (c != 0) {
-            shell_handle_key(c);
+            enqueue_key(c);
         }
     }
 }
@@ -67,4 +71,30 @@ extern "C" void keyboard_handler() {
 
     // PIC에 EOI 전송 (IRQ 1)
     pic_send_eoi(1);
+}
+
+static void enqueue_key(char c) {
+    // 큐가 가득 찼는지 검사 (선택 사항: 가득 찼으면 무시)
+    unsigned int next_head = (keyboard_head + 1) % 128;
+    if (next_head == keyboard_tail) {
+        return; // 버퍼 꽉 참!
+    }
+
+    keyboard_buffer[keyboard_head] = c;
+    keyboard_head = next_head; // 언제나 0~127 유지!
+}
+
+char dequeue_key() {
+    if (keyboard_tail == keyboard_head) {
+        return 0; // 비어있음
+    }
+
+    char c = keyboard_buffer[keyboard_tail];
+    keyboard_tail = (keyboard_tail + 1) % 128; // 언제나 0~127 유지!
+    return c;
+}
+
+
+int buffer_has_char() {
+    return keyboard_head != keyboard_tail;
 }
