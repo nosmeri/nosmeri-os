@@ -32,6 +32,8 @@ void sleep(unsigned int ms) {
 extern "C" void timer_handler() {
     timer_ticks++;
 
+    task_timer_tick();
+
     // PIC에 EOI 전송 (IRQ 0)
     pic_send_eoi(0);
 

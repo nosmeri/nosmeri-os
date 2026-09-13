@@ -13,9 +13,12 @@ struct Task {
     unsigned int esp;             // 이 태스크가 멈췄을 때의 스택 포인터 (ESP)
     void* stack_bottom;           // kmalloc으로 할당받은 스택 메모리 주소 (해제용)
     TaskState state;              // 현재 상태
+    unsigned int wake_tick;
     Task* next;                   // 원형 연결 리스트(Circular Linked List)용 포인터
 };
 
+void task_sleep(unsigned int ms);
+void task_timer_tick();
 void init_tasking();
 Task* create_task(void (*entry_point)());
 void task_yield();

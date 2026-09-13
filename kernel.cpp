@@ -6,7 +6,6 @@
 #include "vmm.h"
 #include "heap.h"
 #include "task.h"
-#include "timer.h"
 
 void spinner() {
     volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
@@ -17,7 +16,7 @@ void spinner() {
         vga[79] = (unsigned short)(spinner[idx % 4] | (0x0A << 8));
         idx++;
         // 약간의 딜레이
-        sleep(100);
+        task_sleep(100);
     }
 }
 

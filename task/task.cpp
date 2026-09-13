@@ -40,6 +40,7 @@ Task* create_task(void (*entry_point)()) {
     new_task->stack_bottom = stack_mem;
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
+    new_task->wake_tick = 0;
 
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
@@ -55,8 +56,38 @@ void init_tasking() {
     kernel_task.esp = 0;          
     kernel_task.stack_bottom = 0;    
     kernel_task.state = TASK_RUNNING;
+    kernel_task.wake_tick = 0;
     kernel_task.next = &kernel_task; 
     current_task = &kernel_task;
+}
+
+void task_sleep(unsigned int ms) {
+    if (!current_task) return; // 현재 태스크 없으면 반환
+
+    unsigned int ticks = (ms * TIMER_FREQ) / 1000;
+    if (ms > 0 && ticks == 0) ticks = 1;
+
+    current_task->wake_tick = get_tick() + ticks;
+    current_task->state = TASK_SLEEPING;
+
+    schedule();
+}
+
+// 원형 리스트를 돌며 슬립 상태인 태스크 체크
+void task_timer_tick() {
+    if (!current_task) return; // 현재 태스크 없으면 반환
+
+    unsigned int current_tick = get_tick();
+    Task* t = current_task;
+
+    do {
+        if (t->state == TASK_SLEEPING) {
+            if (current_tick >= t->wake_tick) {
+                t->state = TASK_READY; // 시간이 다 됐으니 다시 실행 준비 완료!
+            }
+        }
+        t = t->next;
+    } while (t != current_task);
 }
 
 void task_yield() {
@@ -69,6 +100,15 @@ void schedule() {
     
     Task* prev = current_task;
     Task* next = current_task->next;
+
+    while (next->state != TASK_READY && next != prev) {
+        next = next->next;
+    }
+
+    // 모든 태스크가 실행 준비 안되면 스위칭 X
+    if (next->state != TASK_READY) {
+        return;
+    }
 
     if (prev->state == TASK_RUNNING) {
         prev->state = TASK_READY;
