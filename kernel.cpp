@@ -20,6 +20,13 @@ void spinner() {
     }
 }
 
+void finite_task() {
+    print_string("\n[Finite Task] I will work for 2 seconds and exit!\n");
+    task_sleep(2000); // 2초 대기
+    print_string("[Finite Task] Finished! Returning now.\n > ");
+    return; // <--- return을 만나면 자동으로 exit_task로 점프!
+}
+
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 1. 화면 드라이버 초기화
     vga_init();
@@ -53,6 +60,7 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     print_string("Initializing Task...");
     init_tasking();
     create_task(spinner);
+    create_task(finite_task);
     print_string(" Done.\n");
 
     // CPU 인터럽트 활성화

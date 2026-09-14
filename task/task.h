@@ -24,4 +24,5 @@ Task* create_task(void (*entry_point)());
 void task_yield();
 void schedule();
 int kill_task(unsigned int pid);
+void exit_task();
 void task_dump();

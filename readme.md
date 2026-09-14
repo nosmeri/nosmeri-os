@@ -35,5 +35,5 @@ make clean
 - [x] Non-blocking Task Sleep
 - [x] task kill
 - [x] 키보드 버퍼 큐 + 셸 태스크 분리
-- [ ] exit task
+- [x] exit task
 - [ ] 파일시스템 (가상 파일 시스템 VFS & Ramdisk)

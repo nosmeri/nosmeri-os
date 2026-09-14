@@ -21,22 +21,23 @@ Task* create_task(void (*entry_point)()) {
         kfree(stack_mem);
         return 0;
     }
-
+    
     // 스택 초기화
     unsigned int* stack_top = (unsigned int*)((unsigned int)stack_mem + TASK_STACK_SIZE);
-
+    
+    stack_top[-1] = (unsigned int)exit_task;
     // ret가 점프할 함수 주소
-    stack_top[-1] = (unsigned int)entry_point;
+    stack_top[-2] = (unsigned int)entry_point;
     // popfd가 복원할 EFLAGS (0x202 = 인터럽트 허용)
-    stack_top[-2] = 0x0202;
+    stack_top[-3] = 0x0202;
     // popa가 복원할 8개 레지스터 (EAX, ECX, EDX, EBX, 더미ESP, EBP, ESI, EDI)
     // ESP는 popa 할때 
-    for (int i = 3; i <= 10; i++) {
+    for (int i = 4; i <= 11; i++) {
         stack_top[-i] = 0;
     }
-    // 이 태스크의 시작 ESP는 EDI가 있는 위치(&stack_top[-10])
+    // 이 태스크의 시작 ESP는 EDI가 있는 위치(&stack_top[-11])
     // context switch용 esp
-    new_task->esp = (unsigned int)&stack_top[-10];
+    new_task->esp = (unsigned int)&stack_top[-11];
     new_task->stack_bottom = stack_mem;
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
@@ -102,6 +103,12 @@ void schedule() {
     Task* next = current_task->next;
 
     while (next->state != TASK_READY && next != prev) {
+        if(next->state == TASK_DEAD) {
+            Task* temp = next->next;
+            kill_task(next->id);
+            next = temp;
+            continue;
+        }
         next = next->next;
     }
 
@@ -141,6 +148,15 @@ int kill_task(unsigned int pid) {
     } while (t != current_task);
 
     return -1;
+}
+
+void exit_task() {
+    current_task->state = TASK_DEAD;
+    schedule();
+
+    while (true) {
+        __asm__ __volatile__ ("hlt");
+    }
 }
 
 void task_dump() {
