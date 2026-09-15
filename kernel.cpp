@@ -6,6 +6,7 @@
 #include "vmm.h"
 #include "heap.h"
 #include "task.h"
+#include "vfs.h"
 
 void spinner() {
     volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
@@ -18,13 +19,6 @@ void spinner() {
         // 약간의 딜레이
         task_sleep(100);
     }
-}
-
-void finite_task() {
-    print_string("\n[Finite Task] I will work for 2 seconds and exit!\n");
-    task_sleep(2000); // 2초 대기
-    print_string("[Finite Task] Finished! Returning now.\n > ");
-    return; // <--- return을 만나면 자동으로 exit_task로 점프!
 }
 
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
@@ -60,7 +54,10 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     print_string("Initializing Task...");
     init_tasking();
     create_task(spinner);
-    create_task(finite_task);
+    print_string(" Done.\n");
+
+    print_string("Initializing VFS...");
+    vfs_init();
     print_string(" Done.\n");
 
     // CPU 인터럽트 활성화

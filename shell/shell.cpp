@@ -7,6 +7,7 @@
 #include "heap.h"
 #include "task.h"
 #include "keyboard.h"
+#include "vfs.h"
 
 static char input_buffer[256];
 static int input_buffer_len = 0;
@@ -44,7 +45,106 @@ void execute_command(const char* cmd) {
         print_string("  heap    - Display kernel heap memory blocks\n");
         print_string("  ps      - List all running tasks/processes\n");
         print_string("  kill    - Terminate a task by PID (e.g. kill 1)\n");
-    } else if (strncmp(cmd, "kill ", 5) == 0) {
+        print_string("  touch   - Create an empty file\n");
+        print_string("  mkdir   - Create a directory\n");
+        print_string("  cd      - Change directory\n");
+        print_string("  ls      - List directory contents\n");
+        print_string("  pwd     - Print working directory\n");
+        print_string("  write   - Write text to a file (e.g. write file.txt hello)\n");
+        print_string("  cat     - Display file content (e.g. cat file.txt)\n");
+    } else if (strncmp(cmd, "write ", 6) == 0) {
+        const char* arg = cmd + 5;
+        while (arg[0] == ' ') arg++;
+        char path_buffer[256];
+        int i = 0;
+        while (arg[0] != ' ' && arg[0] != '\0') path_buffer[i++] = *(arg++);
+        path_buffer[i] = '\0';
+        while (arg[0] == ' ') arg++;
+        if (path_buffer[0] == '\0' || arg[0] == '\0') {
+            print_string("Usage: write <file> <text>\n");
+            return;
+        }
+        vfs_node file;
+        if (vfs_resolve_path(path_buffer, &file) != 0) {
+            print_string("File not found\n");
+            return;
+        }
+        int result = vfs_write(&file, arg, strlen(arg));
+        if (result == -1) {
+            print_string("Write failed\n");
+        }
+    } else if (strcmp(cmd, "write") == 0) {
+        print_string("Usage: write <file> <text>\n");
+    } else if (strncmp(cmd, "cat ", 4) == 0) {
+        const char* arg = cmd + 3;
+        while (arg[0] == ' ') arg++;
+        if (arg[0] == '\0') {
+            print_string("Usage: cat <file>\n");
+            return;
+        }
+        vfs_node node;
+        if (vfs_resolve_path(arg, &node) != 0 || (node.flags & VFS_DIRECTORY)) {
+            print_string("File not found or is a directory\n");
+            return;
+        }
+        char* buf = (char*)kmalloc(node.size + 1);
+        if (!buf) {
+            print_string("Out of memory\n");
+            return;
+        }
+        vfs_read(&node, buf, node.size);
+        buf[node.size] = '\0';
+        print_string(buf);
+        print_char('\n');
+        kfree(buf);
+    } else if (strcmp(cmd, "cat") == 0) {
+        print_string("Usage: cat <file>\n");
+    } else if (strncmp(cmd, "touch ", 6) == 0) {
+        const char* arg = cmd + 5;
+        while (arg[0] == ' ') arg++;
+        if (arg[0] == '\0') {
+            print_string("Usage: touch <filename>\n");
+        } else if (vfs_create(&current_dir, arg) != 0) {
+            print_string("Failed to create file (already exists or disk full)\n");
+        }
+    } else if (strcmp(cmd, "touch") == 0) {
+        print_string("Usage: touch <filename>\n");
+    } else if (strncmp(cmd, "mkdir ", 6) == 0) {
+        const char* arg = cmd + 5;
+        while (arg[0] == ' ') arg++;
+        if (arg[0] == '\0') {
+            print_string("Usage: mkdir <dirname>\n");
+        } else if (vfs_mkdir(&current_dir, arg) != 0) {
+            print_string("Failed to create directory (already exists or disk full)\n");
+        }
+    } else if (strcmp(cmd, "mkdir") == 0) {
+        print_string("Usage: mkdir <dirname>\n");
+    } else if (strncmp(cmd, "cd ", 3) == 0) {
+        const char* arg = cmd + 2;
+        while (arg[0] == ' ') arg++;
+        if (arg[0] == '\0') {
+            print_string("Usage: cd <path>\n");
+        } else if (vfs_cd(arg) != 0) {
+            print_string("Directory not found\n");
+        }
+    } else if (strcmp(cmd, "cd") == 0) {
+        print_string("Usage: cd <path>\n");
+    } else if (strncmp(cmd, "ls ", 3) == 0) {
+        const char* arg = cmd + 2;
+        while (arg[0] == ' ') arg++;
+        vfs_node node;
+        if (vfs_resolve_path(arg, &node) != 0 || !(node.flags & VFS_DIRECTORY)) {
+            print_string("Directory not found\n");
+        } else {
+            vfs_list(&node);
+        }
+    } else if (strcmp(cmd, "ls") == 0) {
+        vfs_list(&current_dir);
+    } else if (strcmp(cmd, "pwd") == 0) {
+        print_string(current_path);
+        print_string("\n");
+    }
+    else if (strncmp(cmd, "kill ", 5) == 0) {
         const char* arg = cmd + 5;
         while (*arg == ' ') arg++;
 

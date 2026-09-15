@@ -6,7 +6,7 @@ QEMU = qemu-system-i386
 
 # 플래그 설정
 CXXFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti -fno-use-cxa-atexit \
-           -Iarch/x86 -Idrivers -Imm -Ilib -Ishell -Itask
+           -Iarch/x86 -Idrivers -Imm -Ilib -Ishell -Itask -Ifs
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T arch/x86/linker.ld
 
@@ -23,12 +23,15 @@ CPP_SRCS = kernel.cpp \
            drivers/timer.cpp \
            drivers/keyboard.cpp \
            drivers/vga.cpp \
+           drivers/ata.cpp \
            mm/pmm.cpp \
            mm/vmm.cpp \
            mm/heap.cpp \
            task/task.cpp \
            lib/string.cpp \
-           shell/shell.cpp
+           shell/shell.cpp \
+           fs/simplefs.cpp \
+           fs/vfs.cpp
 
 # 오브젝트 파일 목록 (build/ 디렉토리 내에 동일한 폴더 구조로 생성)
 ASM_OBJS = $(patsubst %.asm, $(BUILD_DIR)/%.o, $(ASM_SRCS))
@@ -61,7 +64,7 @@ $(BUILD_DIR)/%.o: %.asm
 # QEMU 실행 타겟 (빌드 후 바로 실행)
 run: $(TARGET)
 	@echo "[QEMU] Launching OS..."
-	$(QEMU) -m 3G -kernel $(TARGET)
+	$(QEMU) -m 3G -kernel $(TARGET) -drive file=disk.img,format=raw,if=ide
 
 # 빌드 산출물 정리
 clean:

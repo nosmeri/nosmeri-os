@@ -9,6 +9,9 @@
 ## 빌드 및 실행 방법 (How to Run)
 
 ```bash
+# 디스크 포멧
+qemu-img create -f raw disk.img 16M
+
 # 빌드 및 QEMU 에뮬레이터 실행
 make run
 # 또는
@@ -36,4 +39,4 @@ make clean
 - [x] task kill
 - [x] 키보드 버퍼 큐 + 셸 태스크 분리
 - [x] exit task
-- [ ] 파일시스템 (가상 파일 시스템 VFS & Ramdisk)
+- [ ] 파일시스템 (가상 파일 시스템 VFS)
