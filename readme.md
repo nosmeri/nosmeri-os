@@ -39,4 +39,5 @@ make clean
 - [x] task kill
 - [x] 키보드 버퍼 큐 + 셸 태스크 분리
 - [x] exit task
-- [ ] 파일시스템 (가상 파일 시스템 VFS)
+- [x] 파일시스템 (가상 파일 시스템 VFS)
+- [x] simplefs 계층에서 print_string 하는 부분 수정

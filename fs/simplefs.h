@@ -25,7 +25,7 @@ struct DirEntry {
 
 void simplefs_init();
 int simplefs_create(unsigned int parent_inode_idx, const char* name);
-void simplefs_list(unsigned int dir_inode_idx);
+int simplefs_get_direntry(unsigned int dir_inode_idx, int index, DirEntry* out_entry);
 int simplefs_write(unsigned int parent_inode_idx, const char* name, const void* buf, unsigned int size);
 int simplefs_read(unsigned int parent_inode_idx, const char* name, void* buf, unsigned int size);
 int simplefs_mkdir(unsigned int parent_inode_idx, const char* name);

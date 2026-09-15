@@ -14,6 +14,7 @@ static int input_buffer_len = 0;
 
 // 쉘 프롬프트 출력 ([초].[소수]s >)
 void print_prompt() {
+    /*
     unsigned int tick = get_tick();
     char time_str[20];
     char decimal_str[3];
@@ -28,7 +29,27 @@ void print_prompt() {
     itoa(decimal, decimal_str, 10);
     print_string(decimal_str);
 
-    print_string("s > ");
+    print_string("s > ");*/
+
+    print_string(current_path);
+    print_string("$ ");
+}
+
+void cmd_ls(const vfs_node* dir) {
+    if (!dir) return;
+    vfs_node entry;
+    for (int i = 0; i < 16; i++) {
+        // vfs_readdir가 0을 반환하면 유효한 파일/폴더가 있는 슬롯
+        if (vfs_readdir(dir, i, &entry) == 0) {
+            print_string(entry.name);
+            
+            // 디렉터리인 경우 끝에 '/'를 붙여줌
+            if (entry.flags & VFS_DIRECTORY) {
+                print_string("/");
+            }
+            print_string("\n");
+        }
+    }
 }
 
 // 명령어 실행기
@@ -136,10 +157,10 @@ void execute_command(const char* cmd) {
         if (vfs_resolve_path(arg, &node) != 0 || !(node.flags & VFS_DIRECTORY)) {
             print_string("Directory not found\n");
         } else {
-            vfs_list(&node);
+            cmd_ls(&node);
         }
     } else if (strcmp(cmd, "ls") == 0) {
-        vfs_list(&current_dir);
+        cmd_ls(&current_dir);
     } else if (strcmp(cmd, "pwd") == 0) {
         print_string(current_path);
         print_string("\n");

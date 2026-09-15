@@ -21,6 +21,6 @@ int vfs_create(const vfs_node* parent, const char* name, vfs_node* out_node = 0)
 int vfs_mkdir(const vfs_node* parent, const char* name, vfs_node* out_node = 0);
 int vfs_write(vfs_node* file, const void* buf, unsigned int size);
 int vfs_read(vfs_node* file, void* buf, unsigned int size);
-void vfs_list(const vfs_node* dir);
+int vfs_readdir(const vfs_node* dir, int index, vfs_node* out_node);
 int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_path = 0);
 int vfs_cd(const char* path);

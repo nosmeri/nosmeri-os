@@ -62,6 +62,7 @@ void simplefs_init() {
     print_string("[SimpleFS] Disk mounted successfully.");
 }
 
+// 파일 생성
 int simplefs_create(unsigned int parent_inode_idx, const char* name) {
     if (strlen(name) >= 28 || strlen(name) == 0) return -1;
 
@@ -131,24 +132,32 @@ int simplefs_create(unsigned int parent_inode_idx, const char* name) {
     return -1;
 }
 
-void simplefs_list(unsigned int dir_inode_idx) {
-    int sector = dir_inode_idx / 4 + 1;
-    int index = dir_inode_idx % 4;
+// dir의 index 번째 파일 가져와서 out_entry에 저장
+// index가 범위를 벗어나거나 존재하지 않는 파일이면 -1 반환
+int simplefs_get_direntry(unsigned int dir_inode_idx, int index, DirEntry* out_entry) {
+    if (index < 0 || index >= 16) return -1;
+    
+    // dir inode 위치 찾기
+    int dir_sector = dir_inode_idx / 4 + 1;
+    int dir_index = dir_inode_idx % 4;
 
     unsigned char buffer[512];
-    ata_read_sector(sector, buffer);
-    Inode* inode = (Inode*)buffer + index;
+    ata_read_sector(dir_sector, buffer);
+    Inode* inode = (Inode*)buffer + dir_index;
 
+    if ((inode->flags & INODE_DIR) == 0) return -1;
+
+    // dir inode의 첫번째 블록(디렉터리 테이블) 읽기
     unsigned int dir_block = inode->blocks[0];
     ata_read_sector(dir_block, buffer);
     DirEntry* direntry = (DirEntry*)buffer;
 
-    for(int i = 0; i < 16; i++) {
-        if(direntry[i].filename[0] != '\0') {
-            print_string(direntry[i].filename);
-            print_string("\n");
-        }
-    }
+    // 존재하지 않는 파일이면 -1 반환
+    if (direntry[index].filename[0] == '\0') return -1;
+
+    memcpy(out_entry, direntry+index, sizeof(DirEntry));
+
+    return 0;
 }
 
 // 디렉토리에 파일이 존재하는지 확인
