@@ -14,8 +14,6 @@ qemu-img create -f raw disk.img 16M
 
 # 빌드 및 QEMU 에뮬레이터 실행
 make run
-# 또는
-./run
 
 # 변경된 파일만 빌드
 make
