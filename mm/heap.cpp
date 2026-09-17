@@ -66,16 +66,23 @@ void* kmalloc(unsigned int size) {
     if (!heap_phys_addr) {
         return 0; // 실제 RAM이 바닥남
     }
-
+    
     vmm_map_page(heap_current_end, (unsigned int)heap_phys_addr, PAGE_PRESENT | PAGE_RW);
-    struct block_header* new_block = (struct block_header*) heap_current_end;
-    new_block->size = PAGE_SIZE-sizeof(block_header);
-    new_block->is_free = true;
-    new_block->next = 0;
-    new_block->prev = prev_block;
-    prev_block->next = new_block;
-    heap_current_end += PAGE_SIZE;
-    return kmalloc(size);
+    if (prev_block && prev_block->is_free) {
+        // 직전 블록이 비어있다면, 헤더를 새로 만들 필요 없이 기존 블록 크기만 4KB 늘려줌
+        prev_block->size += PAGE_SIZE;
+        heap_current_end += PAGE_SIZE;
+        return kmalloc(size); // 이제 합쳐져서 커졌으니 재귀 호출 시 바로 할당 성공
+    } else {
+        struct block_header* new_block = (struct block_header*) heap_current_end;
+        new_block->size = PAGE_SIZE-sizeof(block_header);
+        new_block->is_free = true;
+        new_block->next = 0;
+        new_block->prev = prev_block;
+        prev_block->next = new_block;
+        heap_current_end += PAGE_SIZE;
+        return kmalloc(size);
+    }
 }
 
 // 힙 메모리 해제
