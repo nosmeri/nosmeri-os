@@ -1,6 +1,8 @@
 #pragma once
 
 #define TASK_STACK_SIZE 1024
+#define USER_STACK_TOP    0xBFFFF000
+#define USER_STACK_BOTTOM (USER_STACK_TOP - PAGE_SIZE) // 4KB 크기
 
 enum TaskState {
     TASK_READY,
@@ -14,6 +16,7 @@ struct Task {
     void* kernel_stack_bottom;    // kmalloc으로 할당받은 커널 스택 메모리 주소 (해제용)
     void* user_stack_bottom;      // 유저 스택 할당 주소 (태스크 종료 시 kfree용)
     unsigned int kernel_stack_top;// 커널 스택 최상단 주소
+    unsigned int cr3;
     bool is_user;                 // 유저 태스크인지 여부 (true/false)
     TaskState state;              // 현재 상태
     unsigned int wake_tick;

@@ -29,6 +29,39 @@ void init_vmm() {
     asm volatile("mov %0, %%cr0" : : "r"(cr0));
 }
 
+unsigned int vmm_get_kernel_page_directory() {
+    return (unsigned int)page_directory;
+}
+
+unsigned int vmm_create_page_directory() {
+    void* page_dir_phys = pmm_alloc_page();
+
+    if(!page_dir_phys) return 0;
+
+    unsigned int* new_pd = (unsigned int*)page_dir_phys;
+
+    for (int i = 0; i < 1024; i++) {
+        new_pd[i] = 0;
+    }
+
+    // 커널 영역 복사
+    new_pd[0] = page_directory[0];
+
+    // 힙 영역 복사
+    for (int i = 768; i < 896; i++) {
+        if (page_directory[i] & PAGE_PRESENT) {
+            new_pd[i] = page_directory[i];
+        }
+    }
+    // 재귀 매핑
+    new_pd[1023] = (unsigned int)new_pd | PAGE_PRESENT | PAGE_RW;
+    return (unsigned int)new_pd;
+}
+
+void vmm_switch_page_directory(unsigned int cr3) {
+    asm volatile("mov %0, %%cr3" : : "r"(cr3));
+}
+
 // 페이지 매핑 함수
 void vmm_map_page(unsigned int virt_addr, unsigned int phys_addr, unsigned int flags) {
     unsigned int pd_idx = virt_addr >> 22;
@@ -36,12 +69,17 @@ void vmm_map_page(unsigned int virt_addr, unsigned int phys_addr, unsigned int f
 
     // 재귀 페이징을 이용한 페이지 테이블 접근
     unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
+    unsigned int* current_pd = (unsigned int*)0xFFFFF000;
 
     // 필요한 페이지 테이블이 없다면 할당
-    if (!(page_directory[pd_idx] & PAGE_PRESENT)) {
+    if (!(current_pd[pd_idx] & PAGE_PRESENT)) {
         void* new_pt_phys = pmm_alloc_page();
 
-        page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        current_pd[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+
+        if (virt_addr >= 0xC0000000) {
+            page_directory[pd_idx] = (unsigned int)new_pt_phys | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+        }
 
         // TLB 갱신 (재귀 페이징을 사용하므로 직접 페이지 테이블 주소를 인자로 넘김)
         asm volatile("invlpg (%0)" : : "r"(page_table) : "memory");
@@ -63,7 +101,9 @@ void vmm_unmap_page(unsigned int virt_addr) {
     unsigned int pd_idx = virt_addr >> 22;
     unsigned int pt_idx = (virt_addr >> 12) & 0x3FF;
 
-    if (!(page_directory[pd_idx] & PAGE_PRESENT)) return;
+    unsigned int* current_pd = (unsigned int*)0xFFFFF000;
+
+    if (!(current_pd[pd_idx] & PAGE_PRESENT)) return;
 
     unsigned int* page_table = (unsigned int*)(0xFFC00000 | (pd_idx << 12));
 
@@ -77,6 +117,19 @@ extern "C" void page_fault_handler(unsigned int error_code) {
     // CR2 레지스터에 잘못된 접근이 발생한 가상 주소가 담겨있음
     unsigned int faulting_address;
     asm volatile("mov %%cr2, %0" : "=r"(faulting_address));
+
+    unsigned int pd_idx = faulting_address >> 22;
+    if (faulting_address >= 0xC0000000 && pd_idx < 1023) {
+        if (page_directory[pd_idx] & PAGE_PRESENT) {
+            unsigned int* current_pd = (unsigned int*)0xFFFFF000;
+            current_pd[pd_idx] = page_directory[pd_idx];
+            
+            // TLB 갱신 후 조용히 리턴!
+            asm volatile("invlpg (%0)" : : "r"(0xFFC00000 | (pd_idx << 12)) : "memory");
+            return;
+        }
+    }
+
 
     set_text_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
     print_string("\n========================================\n");

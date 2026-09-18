@@ -4,6 +4,8 @@
 #include "string.h"
 #include "timer.h"
 #include "gdt.h"
+#include "vmm.h"
+#include "pmm.h"
 
 static Task kernel_task;
 static Task* current_task = 0;
@@ -42,6 +44,7 @@ Task* create_task(void (*entry_point)()) {
     new_task->kernel_stack_bottom = stack_mem;
     new_task->kernel_stack_top = (unsigned int)stack_mem + TASK_STACK_SIZE;
     new_task->user_stack_bottom = 0;
+    new_task->cr3 = kernel_task.cr3;
     new_task->is_user = false; 
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
@@ -60,21 +63,32 @@ Task* create_user_task(void (*entry_point)()) {
     // 커널 스택(4KB) 할당
     void* kernel_stack_mem = kmalloc(TASK_STACK_SIZE);
     // 유저 스택(4KB) 할당
-    void* user_stack_mem = kmalloc(TASK_STACK_SIZE);
-    if (!kernel_stack_mem || !user_stack_mem) return 0;
+    void* user_stack_mem = pmm_alloc_page();
 
-    Task* new_task = (Task*)kmalloc(sizeof(Task));
-    if (!new_task) {
-        kfree(kernel_stack_mem);
-        kfree(user_stack_mem);
+    if (!kernel_stack_mem || !user_stack_mem) {
+        if (kernel_stack_mem) kfree(kernel_stack_mem);
+        if (user_stack_mem) pmm_free_page(user_stack_mem);
         return 0;
     }
     
+    Task* new_task = (Task*)kmalloc(sizeof(Task));
+    if (!new_task) {
+        kfree(kernel_stack_mem);
+        pmm_free_page(user_stack_mem);
+        return 0;
+    }
+
+    new_task->cr3 = vmm_create_page_directory();
+    vmm_switch_page_directory(new_task->cr3);
+
+    vmm_map_page(USER_STACK_BOTTOM, (unsigned int)user_stack_mem, PAGE_USER | PAGE_RW | PAGE_PRESENT);
+    
     // 스택 초기화
     unsigned int* kernel_stack_top = (unsigned int*)((unsigned int)kernel_stack_mem + TASK_STACK_SIZE);
-    unsigned int* user_stack_top = (unsigned int*)((unsigned int)user_stack_mem + TASK_STACK_SIZE);
+    unsigned int* user_stack_top = (unsigned int*)(USER_STACK_TOP);
 
     user_stack_top[-1] = (unsigned int)user_exit;
+    vmm_switch_page_directory(current_task->cr3);
     
     // 커널 스택에 저장할 유저 태스크 복귀 초기 정보
     // 이후에는 인터럽트시 자동으로 저장됨
@@ -97,9 +111,9 @@ Task* create_user_task(void (*entry_point)()) {
     // switch_context가 읽을 시작 ESP는 EDI 위치(-15번)
     new_task->esp = (unsigned int)&kernel_stack_top[-15];
 
-    new_task->kernel_stack_bottom = kernel_stack_mem;
+    new_task->kernel_stack_bottom = kernel_stack_mem; // 가상메모리
     new_task->kernel_stack_top = (unsigned int)kernel_stack_mem + TASK_STACK_SIZE;
-    new_task->user_stack_bottom = user_stack_mem;
+    new_task->user_stack_bottom = user_stack_mem; // 물리메모리
     new_task->is_user = true; 
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
@@ -118,6 +132,8 @@ void init_tasking() {
     kernel_task.id = next_pid++;
     kernel_task.esp = 0;          
     kernel_task.kernel_stack_bottom = 0;    
+    kernel_task.cr3 = vmm_get_kernel_page_directory();
+    kernel_task.is_user = false;
     kernel_task.state = TASK_RUNNING;
     kernel_task.wake_tick = 0;
     kernel_task.next = &kernel_task; 
@@ -190,6 +206,11 @@ void schedule() {
         set_kernel_stack((unsigned int)next->kernel_stack_top);
     }
 
+    // 페이지 디렉토리(CR3) 변경
+    if (prev->cr3 != next->cr3) {
+        vmm_switch_page_directory(next->cr3);
+    }
+
     current_task = next;
     switch_context(prev, next); 
 }
@@ -206,8 +227,10 @@ int kill_task(unsigned int pid) {
         if (t->id == pid) {
             prev->next = t->next;
             kfree(t->kernel_stack_bottom);
-            if (t->is_user)
-                kfree(t->user_stack_bottom);
+            if (t->is_user) {
+                pmm_free_page(t->user_stack_bottom);
+                pmm_free_page((void*)t->cr3);
+            }
             kfree(t);
 
             return pid;
