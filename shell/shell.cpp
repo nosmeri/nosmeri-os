@@ -30,6 +30,7 @@ static void cmd_ls(const char* arg);
 static void cmd_pwd(const char* arg);
 static void cmd_write(const char* arg);
 static void cmd_cat(const char* arg);
+static void cmd_exec(const char* arg);
 
 // 명령어 디스패치 테이블
 static const Command commands[] = {
@@ -50,6 +51,7 @@ static const Command commands[] = {
     { "pwd",     "Print working directory",                             cmd_pwd },
     { "write",   "Write text to a file (e.g. write file.txt hello)",    cmd_write },
     { "cat",     "Display file content (e.g. cat file.txt)",            cmd_cat },
+    { "exec",    "Execute a binary file",                               cmd_exec },
 };
 
 static const int num_commands = sizeof(commands) / sizeof(commands[0]);
@@ -285,6 +287,25 @@ static void cmd_cat(const char* arg) {
     print_string(buf);
     print_char('\n');
     kfree(buf);
+}
+
+static void cmd_exec(const char* arg) {
+    while (*arg == ' ') arg++;
+    if (*arg == '\0') {
+        print_string("Usage: exec <filepath>\n");
+        return;
+    }
+
+    Task* t = create_user_process(arg);
+    if (t) {
+        print_string("Process spawned with PID: ");
+        char buf[16];
+        itoa(t->id, buf, 10);
+        print_string(buf);
+        print_string("\n");
+    } else {
+        print_string("Failed to execute: file not found or load error\n");
+    }
 }
 
 // 명령어 디스패처

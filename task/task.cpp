@@ -6,6 +6,7 @@
 #include "gdt.h"
 #include "vmm.h"
 #include "pmm.h"
+#include "vfs.h"
 
 static Task kernel_task;
 static Task* current_task = 0;
@@ -122,6 +123,48 @@ Task* create_user_task(void (*entry_point)()) {
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
     current_task->next = new_task;
+
+    return new_task;
+}
+
+Task* create_user_process(const char* filepath) {
+    // 파일 읽기
+    vfs_node file_node;
+    if (vfs_resolve_path(filepath, &file_node) != 0) {
+        return 0;
+    }
+    
+    unsigned char* buf = (unsigned char*)kmalloc(file_node.size);
+    if (!buf) return 0;
+
+    vfs_read(&file_node, buf, file_node.size);
+
+    Task* new_task = create_user_task((void(*)())USER_CODE_START);
+
+    if(!new_task) {
+        kfree(buf);
+        return 0;
+    }
+    new_task->state = TASK_SLEEPING;
+    new_task->wake_tick = 0xFFFFFFFF;
+    
+    vmm_switch_page_directory(new_task->cr3);
+
+    unsigned int page_cnt = (file_node.size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    for (unsigned int i = 0; i < page_cnt; i++) {
+        void* frame = pmm_alloc_page();
+        vmm_map_page(USER_CODE_START + i*PAGE_SIZE, (unsigned int)frame, PAGE_USER | PAGE_RW | PAGE_PRESENT);
+    }
+
+    // 파일 내용을 유저 코드 영역에 복사
+    memcpy((void*)USER_CODE_START, buf, file_node.size);
+    kfree(buf);
+
+    vmm_switch_page_directory(current_task->cr3);
+
+    new_task->state = TASK_READY;
+    new_task->wake_tick = 0;
 
     return new_task;
 }

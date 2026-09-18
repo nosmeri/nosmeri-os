@@ -1,8 +1,10 @@
 #pragma once
+#include "pmm.h"
 
 #define TASK_STACK_SIZE 1024
 #define USER_STACK_TOP    0xBFFFF000
 #define USER_STACK_BOTTOM (USER_STACK_TOP - PAGE_SIZE) // 4KB 크기
+#define USER_CODE_START   0x40000000
 
 enum TaskState {
     TASK_READY,
@@ -28,6 +30,7 @@ void task_timer_tick();
 void init_tasking();
 Task* create_task(void (*entry_point)());
 Task* create_user_task(void (*entry_point)());
+Task* create_user_process(const char* filepath);
 void task_yield();
 void schedule();
 int kill_task(unsigned int pid);

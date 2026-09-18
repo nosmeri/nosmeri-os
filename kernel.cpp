@@ -8,6 +8,34 @@
 #include "task.h"
 #include "vfs.h"
 
+static const unsigned char sample_hello_bin[] = {
+    0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x25, 0x00, 0x00, 0x40, 0xCD, 0x80,
+    0xB8, 0x04, 0x00, 0x00, 0x00, 0xBB, 0xE8, 0x03, 0x00, 0x00, 0xCD, 0x80,
+    0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x49, 0x00, 0x00, 0x40, 0xCD, 0x80,
+    0xC3, // ret
+    // 문자열 1: "[Disk Exec] Hello from /hello.bin!\n\0"
+    0x5B, 0x44, 0x69, 0x73, 0x6B, 0x20, 0x45, 0x78, 0x65, 0x63, 0x5D, 0x20,
+    0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x2F,
+    0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x2E, 0x62, 0x69, 0x6E, 0x21, 0x0A, 0x00,
+    // 문자열 2: "[Disk Exec] Finished after sleep!\n\0"
+    0x5B, 0x44, 0x69, 0x73, 0x6B, 0x20, 0x45, 0x78, 0x65, 0x63, 0x5D, 0x20,
+    0x46, 0x69, 0x6E, 0x69, 0x73, 0x68, 0x65, 0x64, 0x20, 0x61, 0x66, 0x74,
+    0x65, 0x72, 0x20, 0x73, 0x6C, 0x65, 0x65, 0x70, 0x21, 0x0A, 0x00
+};
+
+static const unsigned char sample_bad_bin[] = {
+    0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x0E, 0x00, 0x00, 0x40, 0xCD, 0x80,
+    0xFA, // cli 명령어 (Ring 3 실행 불가!)
+    0xC3, // ret
+    // 메시지: "[Privilege Test] Ring 3 attempting CLI instruction...\n\0"
+    0x5B, 0x50, 0x72, 0x69, 0x76, 0x69, 0x6C, 0x65, 0x67, 0x65, 0x20, 0x54,
+    0x65, 0x73, 0x74, 0x5D, 0x20, 0x52, 0x69, 0x6E, 0x67, 0x20, 0x33, 0x20,
+    0x61, 0x74, 0x74, 0x65, 0x6D, 0x70, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x43,
+    0x4C, 0x49, 0x20, 0x69, 0x6E, 0x73, 0x74, 0x72, 0x75, 0x63, 0x74, 0x69,
+    0x6F, 0x6E, 0x2E, 0x2E, 0x2E, 0x0A, 0x00
+};
+
+
 void spinner() {
     volatile unsigned short* vga = (volatile unsigned short*)0xB8000;
     const char spinner[] = {'|', '/', '-', '\\'};
@@ -19,47 +47,6 @@ void spinner() {
         // 약간의 딜레이
         task_sleep(100);
     }
-}
-
-void user_function() {
-    
-    const char* msg = "[User Task] Direct int 0x80 called!\n";
-    __asm__ __volatile__ (
-        "int $0x80"
-        :
-        : "a"(1), "b"(msg)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
-        : "memory"
-    );
-
-    __asm__ __volatile__ (
-        "int $0x80"
-        :
-        : "a"(4), "b"(1000)   // eax = 4 (SYS_SLEEP), ebx = 1000ms
-        : "memory"
-    );
-
-    const char* msg2 = "[User Task] Exit Task\n";
-    __asm__ __volatile__ (
-        "int $0x80"
-        :
-        : "a"(1), "b"(msg2)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
-        : "memory"
-    );
-
-    user_exit();
-
-    const char* msg3 = "[User Task] Exit Check\n";
-    __asm__ __volatile__ (
-        "int $0x80"
-        :
-        : "a"(1), "b"(msg3)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
-        : "memory"
-    );
-
-    // 유저 모드에서 금지된 명령어 시도 
-    //__asm__ __volatile__ ("cli");
-
-    while (true) { };
 }
 
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
@@ -95,12 +82,29 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     print_string("Initializing Task...");
     init_tasking();
     create_task(spinner);
-    create_user_task(user_function);
     print_string(" Done.\n");
 
     print_string("Initializing VFS...");
     vfs_init();
     print_string(" Done.\n");
+
+    // 디스크에 /hello.bin 파일이 없으면 자동 생성 및 저장
+    vfs_node check_node;
+    if (vfs_resolve_path("/hello.bin", &check_node) != 0) {
+        vfs_node hello_file;
+        if (vfs_create(&vfs_root, "hello.bin", &hello_file) == 0) {
+            vfs_write(&hello_file, sample_hello_bin, sizeof(sample_hello_bin));
+        }
+    }
+    // 디스크에 /bad.bin 생성
+    if (vfs_resolve_path("/bad.bin", &check_node) != 0) {
+        vfs_node bad_file;
+        if (vfs_create(&vfs_root, "bad.bin", &bad_file) == 0) {
+            vfs_write(&bad_file, sample_bad_bin, sizeof(sample_bad_bin));
+        }
+    }
+
+
 
     // CPU 인터럽트 활성화
     __asm__ __volatile__ ("sti");
