@@ -21,6 +21,47 @@ void spinner() {
     }
 }
 
+void user_function() {
+    
+    const char* msg = "[User Task] Direct int 0x80 called!\n";
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(1), "b"(msg)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
+        : "memory"
+    );
+
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(4), "b"(1000)   // eax = 4 (SYS_SLEEP), ebx = 1000ms
+        : "memory"
+    );
+
+    const char* msg2 = "[User Task] Exit Task\n";
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(1), "b"(msg2)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
+        : "memory"
+    );
+
+    user_exit();
+
+    const char* msg3 = "[User Task] Exit Check\n";
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(1), "b"(msg3)   // eax = 1 (SYS_PRINT), ebx = 문자열 포인터
+        : "memory"
+    );
+
+    // 유저 모드에서 금지된 명령어 시도 
+    //__asm__ __volatile__ ("cli");
+
+    while (true) { };
+}
+
 extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     // 1. 화면 드라이버 초기화
     vga_init();
@@ -54,6 +95,7 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     print_string("Initializing Task...");
     init_tasking();
     create_task(spinner);
+    create_user_task(user_function);
     print_string(" Done.\n");
 
     print_string("Initializing VFS...");

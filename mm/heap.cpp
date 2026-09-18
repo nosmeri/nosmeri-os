@@ -12,7 +12,7 @@ void init_heap() {
     // 초기 힙 메모리의 물리 메모리 할당 및 페이지 할당
     for (unsigned int addr = HEAP_START; addr < HEAP_START + HEAP_INITIAL_SIZE; addr += PAGE_SIZE){
         void* heap_phys_addr = pmm_alloc_page();
-        vmm_map_page(addr, (unsigned int)heap_phys_addr, PAGE_PRESENT | PAGE_RW);
+        vmm_map_page(addr, (unsigned int)heap_phys_addr, PAGE_PRESENT | PAGE_RW | PAGE_USER);
     }
 
     // 초기 block header 설정
@@ -67,7 +67,7 @@ void* kmalloc(unsigned int size) {
         return 0; // 실제 RAM이 바닥남
     }
     
-    vmm_map_page(heap_current_end, (unsigned int)heap_phys_addr, PAGE_PRESENT | PAGE_RW);
+    vmm_map_page(heap_current_end, (unsigned int)heap_phys_addr, PAGE_PRESENT | PAGE_RW | PAGE_USER);
     if (prev_block && prev_block->is_free) {
         // 직전 블록이 비어있다면, 헤더를 새로 만들 필요 없이 기존 블록 크기만 4KB 늘려줌
         prev_block->size += PAGE_SIZE;

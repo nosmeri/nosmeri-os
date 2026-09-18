@@ -1,5 +1,37 @@
 #pragma once
 
+
+// 규격은 이렇지만 실제로는 esp0랑 ss0만 불러옴
+struct tss_entry {
+    unsigned int prev_tss;
+    unsigned int esp0;       // Ring 0 진입 시 사용할 커널 스택 포인터 (★가장 중요★)
+    unsigned int ss0;        // Ring 0 진입 시 사용할 커널 데이터 세그먼트 (0x10)
+    unsigned int esp1;
+    unsigned int ss1;
+    unsigned int esp2;
+    unsigned int ss2;
+    unsigned int cr3;
+    unsigned int eip;
+    unsigned int eflags;
+    unsigned int eax;
+    unsigned int ecx;
+    unsigned int edx;
+    unsigned int ebx;
+    unsigned int esp;
+    unsigned int ebp;
+    unsigned int esi;
+    unsigned int edi;
+    unsigned int es;
+    unsigned int cs;
+    unsigned int ss;
+    unsigned int ds;
+    unsigned int fs;
+    unsigned int gs;
+    unsigned int ldt;
+    unsigned short trap;
+    unsigned short iomap_base;
+} __attribute__((packed));
+
 // 컴파일러의 패딩을 방지하여 정확히 8바이트를 유지
 struct gdt_entry {
     unsigned short limit_low;     // 세그먼트 크기 (하위 16비트)
@@ -36,3 +68,4 @@ struct gdt_ptr {
 } __attribute__((packed));
 
 void init_gdt();
+void set_kernel_stack(unsigned int stack_top);

@@ -14,6 +14,8 @@ struct Registers {
 // 시스템 콜 번호 정의
 #define SYS_PRINT   1
 #define SYS_GETTICK 2
+#define SYS_EXIT 3
+#define SYS_SLEEP 4
 
 // C++ 시스템 콜 핸들러 (boot.asm의 isr80에서 호출)
 extern "C" void syscall_handler(Registers* regs);

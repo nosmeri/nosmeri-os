@@ -3,6 +3,7 @@
 #include "timer.h"
 #include "keyboard.h"
 #include "vga.h"
+#include "string.h"
 
 idt_entry idt_entries[256];
 idt_ptr   idt_record;
@@ -10,6 +11,7 @@ idt_ptr   idt_record;
 // 어셈블리에서 정의된 저수준 핸들러 선언
 extern "C" void idt_load(unsigned int);
 extern "C" void isr0(); // Division by zero 핸들러
+extern "C" void isr13(); // GPF 핸들러
 extern "C" void isr14(); // Page fault 핸들러
 extern "C" void irq0(); // 타이머 인터럽트 핸들러
 extern "C" void irq1(); // 키보드 인터럽트 핸들러
@@ -41,6 +43,9 @@ void init_idt() {
     // 0번 예외(Divide by Zero)에 핸들러 등록
     set_idt_gate(0, (unsigned int)isr0, 0x08, 0x8E);
 
+    // 13번 예외(GPF)에 핸들러 등록 (0x8E: Ring 0 인터럽트 게이트)
+    set_idt_gate(13, (unsigned int)isr13, 0x08, 0x8E);
+
     // 14번 예외(Page Fault)에 핸들러 등록
     set_idt_gate(14, (unsigned int)isr14, 0x08, 0x8E);
 
@@ -62,6 +67,26 @@ void init_idt() {
 extern "C" void isr_handler() {
     set_text_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
     print_string("\n[EXCEPTION] CPU Divide by Zero Exception (ISR0)!\n");
+    print_string("System halted.\n");
+
+    while (true) {
+        __asm__ __volatile__ ("hlt");
+    }
+}
+
+extern "C" void gpf_handler(unsigned int error_code) {
+    set_text_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+    print_string("\n========================================\n");
+    print_string(" [KERNEL PANIC] GENERAL PROTECTION FAULT (GPF)!\n");
+    print_string("========================================\n");
+
+    char buf[32];
+    print_string("Error Code: 0x");
+    itoa(error_code, buf, 16);
+    print_string(buf);
+    print_string("\n");
+
+    print_string("Cause: Privilege violation (Ring 3 attempted Ring 0 instruction/access) or Invalid Segment.\n");
     print_string("System halted.\n");
 
     while (true) {

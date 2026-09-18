@@ -59,11 +59,13 @@ gdt_flush:
 
 global idt_load
 global isr0
+global isr13
 global isr14
 global irq0
 global irq1
 global isr80
 extern isr_handler
+extern gpf_handler
 extern page_fault_handler
 extern timer_handler
 extern keyboard_handler
@@ -81,6 +83,36 @@ isr0:
     call isr_handler ; C++ 실제 핸들러 호출
     popa            ; 레지스터 복구
     iret            ; 인터럽트 복귀 (iret은 인터럽트용 특수 리턴 명령어입니다)
+
+; 13번 예외(General Protection Fault) 스탑
+; 주의: CPU가 자동으로 스택에 에러 코드(4바이트)를 푸시함
+isr13:
+    pusha           ; 범용 레지스터 백업
+    push ds
+    push es
+    push fs
+    push gs
+
+    mov ax, 0x10    ; 커널 데이터 세그먼트 로드
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ; 스택: [esp] = gs .. [esp+12] = ds, [esp+16] = pusha(edi..eax), [esp+48] = error_code
+    mov eax, [esp + 48] ; CPU가 넣어준 에러 코드 가져오기
+    push eax            ; 1번째 인자: error_code
+    call gpf_handler
+    add esp, 4          ; 인자 정리
+
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popa
+    add esp, 4          ; CPU가 푸시했던 에러 코드(4바이트) 제거
+    iret
+
 
 ; 14번 예외(Page Fault) 스탑
 ; 주의: CPU가 자동으로 스택에 에러 코드(Error Code)를 푸시함
@@ -125,6 +157,7 @@ irq1:
     popa            ; 레지스터 복구
     iret
 
+; 시스템 콜
 isr80:
     pusha           ; 1. 범용 레지스터 백업 (EAX ~ EDI)
     push ds         ; 2. 유저의 세그먼트 레지스터 백업
@@ -157,11 +190,28 @@ switch_context:
     mov eax, [esp + 40] ; eax = prev task
     mov edx, [esp + 44] ; edx = next task
 
-    mov [eax + 4], esp
-    mov esp, [edx + 4]
+    mov [eax + 4], esp ; prev task의 esp 저장
+    mov esp, [edx + 4] ; next task의 esp 받아옴
 
     popa
     popfd
     ret
+
+global tss_flush
+tss_flush:
+    mov ax, 0x28 ; TSS Selector
+    ltr ax       ; Load Task Register
+    ret
+
+; 유저 태스크가 처음 시작될때 거쳐가는 함수
+global user_task_trampoline
+user_task_trampoline:
+    mov ax, 0x23 ; Ring 3 Data Selector
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    iret 
 
 section .note.GNU-stack noalloc noexec nowrite progbits ; ld: warning: boot.o: missing .note.GNU-stack section implies executable stack 경고 없애기

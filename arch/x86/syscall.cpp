@@ -1,6 +1,7 @@
 #include "syscall.h"
 #include "vga.h"
 #include "timer.h"
+#include "task.h"
 
 // C++ 시스템 콜 핸들러 본체
 // boot.asm의 isr80에서 push esp 한 포인터가 regs로 전달됨
@@ -18,6 +19,19 @@ extern "C" void syscall_handler(Registers* regs) {
         case SYS_GETTICK: {
             // 반환값은 eax 레지스터에 저장
             regs->eax = get_tick();
+            break;
+        }
+
+        case SYS_EXIT: {
+            // 현재 태스크를 DEAD 상태로 변경
+            exit_task();
+            break;
+        }
+
+        case SYS_SLEEP: {
+            // ebx 레지스터에 délay 값이 담겨 전달됨
+            unsigned int delay_ticks = regs->ebx;
+            task_sleep(delay_ticks);
             break;
         }
 

@@ -10,13 +10,13 @@ void init_vmm() {
     for (int i = 0; i < 1024; i++) {
         page_directory[i] = 0;
     }
-    page_directory[0] = (unsigned int) first_page_table | PAGE_PRESENT | PAGE_RW;
+    page_directory[0] = (unsigned int) first_page_table | PAGE_PRESENT | PAGE_RW | PAGE_USER;
     // 재귀 접근을 위한 매핑
     page_directory[1023] = (unsigned int) page_directory | PAGE_PRESENT | PAGE_RW;
 
     // 초기 테이블 물리주소와 1:1 매핑
     for (int i = 0; i < 1024; i++) {
-        first_page_table[i] = (unsigned int)(i * 0x1000) | PAGE_PRESENT | PAGE_RW;
+        first_page_table[i] = (unsigned int)(i * 0x1000) | PAGE_PRESENT | PAGE_RW | PAGE_USER;
     }
     
     // CR3 레지스터에 페이지 디렉토리 주소 설정

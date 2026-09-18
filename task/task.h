@@ -11,7 +11,10 @@ enum TaskState {
 struct Task {
     unsigned int id;              // 태스크 고유 ID (PID)
     unsigned int esp;             // 이 태스크가 멈췄을 때의 스택 포인터 (ESP)
-    void* stack_bottom;           // kmalloc으로 할당받은 스택 메모리 주소 (해제용)
+    void* kernel_stack_bottom;    // kmalloc으로 할당받은 커널 스택 메모리 주소 (해제용)
+    void* user_stack_bottom;      // 유저 스택 할당 주소 (태스크 종료 시 kfree용)
+    unsigned int kernel_stack_top;// 커널 스택 최상단 주소
+    bool is_user;                 // 유저 태스크인지 여부 (true/false)
     TaskState state;              // 현재 상태
     unsigned int wake_tick;
     Task* next;                   // 원형 연결 리스트(Circular Linked List)용 포인터
@@ -21,8 +24,10 @@ void task_sleep(unsigned int ms);
 void task_timer_tick();
 void init_tasking();
 Task* create_task(void (*entry_point)());
+Task* create_user_task(void (*entry_point)());
 void task_yield();
 void schedule();
 int kill_task(unsigned int pid);
 void exit_task();
+void user_exit();
 void task_dump();

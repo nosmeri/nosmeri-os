@@ -39,6 +39,7 @@ make clean
 - [x] exit task
 - [x] 파일시스템 (가상 파일 시스템 VFS)
 - [x] simplefs 계층에서 print_string 하는 부분 수정
+- [x] User Mode(Ring 3) 전환
 - [ ] 파일 삭제
-- [ ] User Mode(Ring 3) 전환
 - [ ] 디스크에 저장된 실행파일 로더
+- [ ] 프로세스별 독립 페이지 디렉터리(CR3 분리) -> 현재 모든 페이지가 유저모드인 문제 해결
