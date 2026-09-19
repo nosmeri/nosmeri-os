@@ -4,7 +4,6 @@
 
 vfs_node vfs_root;
 vfs_node current_dir;
-char current_path[256] = "/";
 
 // vfs(virtual file system) 설정
 void vfs_init() {
@@ -25,7 +24,6 @@ void vfs_init() {
 
     // 현재 폴더를 루트폴더로
     current_dir = vfs_root;
-    memcpy(current_path, "/", 2);
 }
 
 // dir_node 폴더에 name 이름의 파일이나 폴더가 존재하면 out_node 에 저장
@@ -143,41 +141,20 @@ int vfs_readdir(const vfs_node* dir, int index, vfs_node* out_node) {
 }
 
 // 폴더 경로 토큰 해석
-// out_canonical_path 넣을 시 '..'과 '.' 노드의 이름을 실제 폴더 이름으로 변환(선택)
-static int resolve_step(vfs_node* cur, const char* token, char* out_canonical_path) {
+static int resolve_step(vfs_node* cur, const char* token) {
     vfs_node next;
     if (vfs_lookup(cur, token, &next) != 0) return -1;
     *cur = next;
-
-    // 만약 전체 경로 문자열이 있을 시 폴더 이름이 .. 또는 .으로 되어있는것을 실제 폴더 이름으로 변환
-    if (out_canonical_path) {
-        if (strcmp(token, ".") == 0) {
-            // 현재 디렉터리는 유지
-        } else if (strcmp(token, "..") == 0) {
-            int len = strlen(out_canonical_path);
-            while (len > 0 && out_canonical_path[len - 1] != '/') len--;
-            if (len > 0) len--;
-            out_canonical_path[len] = '\0';
-        } else {
-            int len = strlen(out_canonical_path);
-            out_canonical_path[len++] = '/';
-            memcpy(out_canonical_path + len, token, strlen(token) + 1);
-        }
-    }
     return 0;
 }
 
 // 폴더 경로(path)로 노트 찾아서 out_node에 저장
-// out_canonical_path에는 전체 경로가 문자열로 저장됨(선택)
-int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_path) {
+int vfs_resolve_path(const char* path, vfs_node* out_node) {
     if (!out_node) return -1;
 
     // path가 없으면 현재 디렉터리
     if (!path || path[0] == '\0') {
         *out_node = current_dir;
-        if (out_canonical_path) {
-            memcpy(out_canonical_path, current_path, strlen(current_path) + 1);
-        }
         return 0;
     }
 
@@ -186,19 +163,9 @@ int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_p
     
     if (path[0] == '/') {  // 절대 경로
         cur = vfs_root;
-        if (out_canonical_path) {
-            out_canonical_path[0] = '\0';
-        }
         while (path[i] == '/') i++;
     } else {  // 상대 경로
         cur = current_dir;
-        if (out_canonical_path) {
-            if (strcmp(current_path, "/") == 0) {
-                out_canonical_path[0] = '\0';
-            } else {
-                memcpy(out_canonical_path, current_path, strlen(current_path) + 1);
-            }
-        }
     }
 
     // '/' 기준으로 나눠서 토큰마다 해석
@@ -208,7 +175,7 @@ int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_p
         if (path[i] == '/') {
             if (n > 0) {
                 token[n] = '\0';
-                if (resolve_step(&cur, token, out_canonical_path) != 0) return -1;
+                if (resolve_step(&cur, token) != 0) return -1;
                 n = 0;
             }
         } else {
@@ -219,11 +186,7 @@ int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_p
 
     if (n > 0) {
         token[n] = '\0';
-        if (resolve_step(&cur, token, out_canonical_path) != 0) return -1;
-    }
-
-    if (out_canonical_path && out_canonical_path[0] == '\0') {
-        memcpy(out_canonical_path, "/", 2);
+        if (resolve_step(&cur, token) != 0) return -1;
     }
 
     *out_node = cur;
@@ -232,12 +195,56 @@ int vfs_resolve_path(const char* path, vfs_node* out_node, char* out_canonical_p
 
 int vfs_cd(const char* path) {
     vfs_node target;
-    char new_path[256];
-    if (vfs_resolve_path(path, &target, new_path) != 0) return -1;
+    if (vfs_resolve_path(path, &target) != 0) return -1;
     if (!(target.flags & VFS_DIRECTORY)) return -1;
 
     current_dir = target;
-    memcpy(current_path, new_path, strlen(new_path) + 1);
     return 0;
 }
 
+int vfs_get_path(const vfs_node* node, char* out_buf, unsigned int buf_size) {
+    if (!node || !out_buf || buf_size == 0) return -1;
+
+    if (node->inode_idx == 0) {
+        memcpy(out_buf, "/", 2);
+        return 0;
+    }
+
+    vfs_node cur = *node;
+    int idx = buf_size-1;
+
+    out_buf[idx--] = '\0';
+    
+    while (cur.inode_idx != 0) {
+        vfs_node parent;
+        if (vfs_lookup(&cur, "..", &parent) != 0) return -1;
+
+        for (unsigned int i = 0; i < SIMPLEFS_ENTRIES_PER_BLOCK; i++) {
+            vfs_node temp;
+            if (vfs_readdir(&parent, i, &temp) != 0) continue;
+            if (cur.inode_idx == temp.inode_idx) {
+                cur = temp;
+                break;
+            }
+        }
+
+        unsigned int name_len = strlen(cur.name);
+        if (idx < (int)name_len) return -1;
+
+        memcpy(out_buf + idx - name_len + 1, cur.name, name_len);
+        idx -= name_len;
+
+        out_buf[idx--] = '/';
+        if (idx < 0) return -1;
+
+        cur = parent;
+    }
+
+    memcpy(out_buf, out_buf+idx+1, buf_size-idx-1);
+
+    return 0;
+}
+
+int vfs_getcwd(char* out_buf, unsigned int buf_size) {
+    return vfs_get_path(&current_dir, out_buf, buf_size);
+}

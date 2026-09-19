@@ -58,7 +58,9 @@ static const int num_commands = sizeof(commands) / sizeof(commands[0]);
 
 // 쉘 프롬프트 출력
 void print_prompt() {
-    print_string(current_path);
+    char path_buf[256];
+    vfs_getcwd(path_buf, sizeof(path_buf));
+    print_string(path_buf);
     print_string("$ ");
 }
 
@@ -237,8 +239,13 @@ static void cmd_ls(const char* arg) {
 
 static void cmd_pwd(const char* arg) {
     (void)arg;
-    print_string(current_path);
-    print_string("\n");
+    char path_buf[256];
+    if (vfs_getcwd(path_buf, sizeof(path_buf)) == 0) {
+        print_string(path_buf);
+        print_string("\n");
+    } else {
+        print_string("Error getting current directory\n");
+    }
 }
 
 static void cmd_write(const char* arg) {
