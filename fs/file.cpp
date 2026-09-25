@@ -40,7 +40,7 @@ static int stderr_write(File* file, const void* buf, unsigned int count) {
     for (unsigned int i = 0; i < count; i++) {
         print_char(cbuf[i]);
     }
-    set_text_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK); // 색상 원복
+    set_text_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK); // 색상 원복
     return count;
 }
 

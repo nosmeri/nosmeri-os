@@ -63,6 +63,9 @@ void print_char(char c) {
             cursor_pos--;
             VIDEO_MEMORY[cursor_pos] = (text_attribute << 8) | ' ';
         }
+    } else if (c == '\f'){
+        clear_screen();
+        return;
     } else {
         VIDEO_MEMORY[cursor_pos] = (text_attribute << 8) | c;
         cursor_pos++;
