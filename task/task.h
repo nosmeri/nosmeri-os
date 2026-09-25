@@ -1,6 +1,8 @@
 #pragma once
 #include "pmm.h"
+#include "file.h"
 
+#define MAX_FD 16
 #define TASK_STACK_SIZE 1024
 #define USER_STACK_TOP    0xBFFFF000
 #define USER_STACK_BOTTOM (USER_STACK_TOP - PAGE_SIZE) // 4KB 크기
@@ -23,11 +25,13 @@ struct Task {
     TaskState state;              // 현재 상태
     unsigned int wake_tick;
     Task* next;                   // 원형 연결 리스트(Circular Linked List)용 포인터
+    File* fd_table[MAX_FD];
 };
 
 void task_sleep(unsigned int ms);
 void task_timer_tick();
 void init_tasking();
+Task* get_current_task();
 Task* create_task(void (*entry_point)());
 Task* create_user_task(void (*entry_point)());
 Task* create_user_process(const char* filepath);

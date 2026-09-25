@@ -31,7 +31,8 @@ CPP_SRCS = kernel.cpp \
            lib/string.cpp \
            shell/shell.cpp \
            fs/simplefs.cpp \
-           fs/vfs.cpp
+           fs/vfs.cpp \
+           fs/file.cpp
 
 # 오브젝트 파일 목록 (build/ 디렉토리 내에 동일한 폴더 구조로 생성)
 ASM_OBJS = $(patsubst %.asm, $(BUILD_DIR)/%.o, $(ASM_SRCS))

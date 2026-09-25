@@ -7,12 +7,15 @@
 #include "vmm.h"
 #include "pmm.h"
 #include "vfs.h"
+#include "file.h"
 
 static Task kernel_task;
 static Task* current_task = 0;
 static unsigned int next_pid = 0;
 
 // 커널 프로세스 -> 인터럽트 1 -> switch -> 프로세스 2 -> 인터럽트 2 -> switch -> 인터럽트 1 -> 커널프로세스 
+
+void init_task_fds(Task* t);
 
 // 프로세스 생성 (fork 원리)
 Task* create_task(void (*entry_point)()) {
@@ -50,6 +53,7 @@ Task* create_task(void (*entry_point)()) {
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
     new_task->wake_tick = 0;
+    init_task_fds(new_task);
 
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
@@ -119,6 +123,7 @@ Task* create_user_task(void (*entry_point)()) {
     new_task->id = next_pid++;
     new_task->state = TASK_READY;
     new_task->wake_tick = 0;
+    init_task_fds(new_task);
 
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
@@ -169,6 +174,8 @@ Task* create_user_process(const char* filepath) {
     return new_task;
 }
 
+Task* get_current_task() { return current_task; }
+
 extern "C" void switch_context(Task* prev, Task* next);
 
 void init_tasking() {
@@ -179,8 +186,20 @@ void init_tasking() {
     kernel_task.is_user = false;
     kernel_task.state = TASK_RUNNING;
     kernel_task.wake_tick = 0;
+    init_task_fds(&kernel_task);
     kernel_task.next = &kernel_task; 
     current_task = &kernel_task;
+}
+
+void init_task_fds(Task* t) {
+    // 1. 모든 슬롯 비우기
+    for (int i = 0; i < MAX_FD; i++) {
+        t->fd_table[i] = 0;
+    }
+    // 2. 0, 1, 2 기본 할당
+    t->fd_table[0] = create_stdin_file();
+    t->fd_table[1] = create_stdout_file();
+    t->fd_table[2] = create_stderr_file();
 }
 
 void task_sleep(unsigned int ms) {

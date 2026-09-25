@@ -42,6 +42,8 @@ make clean
 - [x] User Mode(Ring 3) 전환
 - [x] 프로세스별 독립 페이지 디렉터리(CR3 분리) -> 현재 모든 페이지가 유저모드인 문제 해결
 - [x] 디스크에 저장된 실행파일 로더
+- [x] File Descriptor
+- [ ] I/O redirection
+- [ ] Pipe
 - [ ] 파일 삭제
-- [ ] File Descriptor
 - [ ] 쉘을 유저프로세스로 전환

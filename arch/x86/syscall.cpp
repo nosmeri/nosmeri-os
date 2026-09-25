@@ -2,10 +2,13 @@
 #include "vga.h"
 #include "timer.h"
 #include "task.h"
+#include "file.h"
+#include "heap.h"
 
 // C++ 시스템 콜 핸들러 본체
 // boot.asm의 isr80에서 push esp 한 포인터가 regs로 전달됨
 extern "C" void syscall_handler(Registers* regs) {
+    Task* current_task = get_current_task();
     switch (regs->eax) {
         case SYS_PRINT: {
             // ebx 레지스터에 문자열의 포인터가 담겨 전달됨
@@ -35,6 +38,82 @@ extern "C" void syscall_handler(Registers* regs) {
             break;
         }
 
+        case SYS_OPEN: {
+            char* path = (char*)regs->ebx;
+            vfs_node node;
+            if (vfs_resolve_path(path, &node) != 0) {
+                regs->eax = -1; // open fail
+                break;
+            }
+            File* file = create_vfs_file(&node);
+            if (!file) {
+                regs->eax = -1;
+                break;
+            }
+            int assigned_fd = -1;
+            for (int i = 0; i < MAX_FD; i++) {
+                if (!current_task->fd_table[i]) {
+                    current_task->fd_table[i] = file;
+                    assigned_fd = i;
+                    break;
+                }
+            }
+            if (assigned_fd == -1) {
+                kfree(file);
+                regs->eax = -1;
+            } else {
+                regs->eax = assigned_fd;
+            }
+            break;
+        }
+        case SYS_CLOSE: { // close(int fd)
+            int fd = (int)regs->ebx;
+            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+                regs->eax = -1;
+                break;
+            }
+            File* file = current_task->fd_table[fd];
+            if (file->ops && file->ops->close) {
+                file->ops->close(file); // 내부적으로 ref_count 처리
+            } else {
+                kfree(file); // 표준 입출력 등은 단순히 해제
+            }
+            current_task->fd_table[fd] = 0;
+            regs->eax = 0; // success
+            break;
+        }
+        case SYS_READ: { // read(int fd, void* buf, unsigned int count)
+            int fd = (int)regs->ebx;
+            void* buf = (void*)regs->ecx;
+            unsigned int count = regs->edx;
+            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+                regs->eax = -1;
+                break;
+            }
+            File* file = current_task->fd_table[fd];
+            if (!file->ops || !file->ops->read) {
+                regs->eax = -1; // 읽기 미지원 (예: stdout에 read 시도)
+                break;
+            }
+            regs->eax = file->ops->read(file, buf, count);
+            break;
+        }
+        case SYS_WRITE: { // write(int fd, const void* buf, unsigned int count)
+            int fd = (int)regs->ebx;
+            const void* buf = (const void*)regs->ecx;
+            unsigned int count = regs->edx;
+            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+                regs->eax = -1;
+                break;
+            }
+            File* file = current_task->fd_table[fd];
+            if (!file->ops || !file->ops->write) {
+                regs->eax = -1; // 쓰기 미지원 (예: stdin에 write 시도)
+                break;
+            }
+            regs->eax = file->ops->write(file, buf, count);
+            break;
+        }
         default:
             // 알 수 없는 시스템 콜 번호
             break;
@@ -58,6 +137,29 @@ unsigned int sys_get_tick() {
         "int $0x80"
         : "=a"(ret)
         : "a"(SYS_GETTICK)
+        : "memory"
+    );
+    return ret;
+}
+
+// arch/x86/syscall.cpp 하단
+int sys_write(int fd, const void* buf, unsigned int count) {
+    int ret;
+    __asm__ __volatile__ (
+        "int $0x80"
+        : "=a"(ret)
+        : "a"(SYS_WRITE), "b"(fd), "c"(buf), "d"(count)
+        : "memory"
+    );
+    return ret;
+}
+
+int sys_read(int fd, void* buf, unsigned int count) {
+    int ret;
+    __asm__ __volatile__ (
+        "int $0x80"
+        : "=a"(ret)
+        : "a"(SYS_READ), "b"(fd), "c"(buf), "d"(count)
         : "memory"
     );
     return ret;
