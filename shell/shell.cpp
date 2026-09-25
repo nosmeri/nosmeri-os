@@ -161,7 +161,6 @@ static void cmd_alloc(const char* arg) {
 
 static void cmd_test(const char* arg) {
     (void)arg;
-    sys_print("System Call Test: int 0x80 successfully executed!\n");
     sys_write(1, "[FD Test] stdout (fd 1) output!\n", 32);
     sys_write(2, "[FD Test] stderr (fd 2) red error output!\n", 42);
 

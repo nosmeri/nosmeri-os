@@ -12,7 +12,6 @@ struct Registers {
 } __attribute__((packed));
 
 // 시스템 콜 번호 정의
-#define SYS_PRINT   1
 #define SYS_GETTICK 2
 #define SYS_EXIT 3
 #define SYS_SLEEP 4
@@ -25,7 +24,6 @@ struct Registers {
 extern "C" void syscall_handler(Registers* regs);
 
 // 호출자 편의를 위한 래퍼 함수 (소프트웨어 인터럽트 int 0x80 발생)
-void sys_print(const char* str);
 unsigned int sys_get_tick();
 int sys_write(int fd, const void* buf, unsigned int count);
 int sys_read(int fd, void* buf, unsigned int count);
