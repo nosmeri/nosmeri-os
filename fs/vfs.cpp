@@ -1,9 +1,9 @@
 #include "vfs.h"
 #include "simplefs.h"
 #include "string.h"
+#include "task.h"
 
 vfs_node vfs_root;
-vfs_node current_dir;
 
 // vfs(virtual file system) 설정
 void vfs_init() {
@@ -21,9 +21,6 @@ void vfs_init() {
     if (simplefs_get_inode(0, &root_inode) == 0) {
         vfs_root.size = root_inode.size;
     }
-
-    // 현재 폴더를 루트폴더로
-    current_dir = vfs_root;
 }
 
 // dir_node 폴더에 name 이름의 파일이나 폴더가 존재하면 out_node 에 저장
@@ -152,9 +149,11 @@ static int resolve_step(vfs_node* cur, const char* token) {
 int vfs_resolve_path(const char* path, vfs_node* out_node) {
     if (!out_node) return -1;
 
+    vfs_node* current_dir = &get_current_task()->cwd;
+
     // path가 없으면 현재 디렉터리
     if (!path || path[0] == '\0') {
-        *out_node = current_dir;
+        *out_node = *current_dir;
         return 0;
     }
 
@@ -165,7 +164,7 @@ int vfs_resolve_path(const char* path, vfs_node* out_node) {
         cur = vfs_root;
         while (path[i] == '/') i++;
     } else {  // 상대 경로
-        cur = current_dir;
+        cur = *current_dir;
     }
 
     // '/' 기준으로 나눠서 토큰마다 해석
@@ -198,7 +197,7 @@ int vfs_cd(const char* path) {
     if (vfs_resolve_path(path, &target) != 0) return -1;
     if (!(target.flags & VFS_DIRECTORY)) return -1;
 
-    current_dir = target;
+    get_current_task()->cwd = target;
     return 0;
 }
 
@@ -246,5 +245,5 @@ int vfs_get_path(const vfs_node* node, char* out_buf, unsigned int buf_size) {
 }
 
 int vfs_getcwd(char* out_buf, unsigned int buf_size) {
-    return vfs_get_path(&current_dir, out_buf, buf_size);
+    return vfs_get_path(&get_current_task()->cwd, out_buf, buf_size);
 }

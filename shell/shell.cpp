@@ -1,7 +1,6 @@
 #include "shell.h"
-#include "timer.h"
-#include "string.h"
 #include "syscall.h"
+#include "string.h"
 #include "pmm.h"
 #include "heap.h"
 #include "task.h"
@@ -49,7 +48,7 @@ static const Command commands[] = {
     { "sysinfo", "Show system configuration information",               cmd_sysinfo },
     { "meminfo", "Show physical memory usage (PMM)",                    cmd_meminfo },
     { "alloc",   "Test allocating a 4KB physical page",                 cmd_alloc },
-    { "test",    "Test sys_print system call (int 0x80)",               cmd_test },
+    { "test",    "Test function",                                       cmd_test },
     { "fault",   "Trigger a Page Fault exception (read unmapped addr)", cmd_fault },
     { "heap",    "Display kernel heap memory blocks",                   cmd_heap },
     { "ps",      "List all running tasks/processes",                    cmd_ps },
@@ -212,7 +211,7 @@ static void cmd_touch(const char* arg) {
     while (*arg == ' ') arg++;
     if (*arg == '\0') {
         shell_print("Usage: touch <filename>\n");
-    } else if (vfs_create(&current_dir, arg) != 0) {
+    } else if (vfs_create(&get_current_task()->cwd, arg) != 0) {
         shell_print("Failed to create file (already exists or disk full)\n");
     }
 }
@@ -221,7 +220,7 @@ static void cmd_mkdir(const char* arg) {
     while (*arg == ' ') arg++;
     if (*arg == '\0') {
         shell_print("Usage: mkdir <dirname>\n");
-    } else if (vfs_mkdir(&current_dir, arg) != 0) {
+    } else if (vfs_mkdir(&get_current_task()->cwd, arg) != 0) {
         shell_print("Failed to create directory (already exists or disk full)\n");
     }
 }
@@ -238,7 +237,7 @@ static void cmd_cd(const char* arg) {
 static void cmd_ls(const char* arg) {
     while (*arg == ' ') arg++;
     if (*arg == '\0') {
-        print_dir_entries(&current_dir);
+        print_dir_entries(&get_current_task()->cwd);
     } else {
         vfs_node node;
         if (vfs_resolve_path(arg, &node) != 0 || !(node.flags & VFS_DIRECTORY)) {
@@ -389,8 +388,7 @@ void shell_main() {
         if (bytes > 0) {
             shell_handle_key(c);
         } else {
-            task_yield();
-            __asm__ __volatile__ ("hlt");
+            sys_sleep(10);
         }
     }
 }

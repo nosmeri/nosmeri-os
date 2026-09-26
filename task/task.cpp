@@ -8,6 +8,7 @@
 #include "pmm.h"
 #include "vfs.h"
 #include "file.h"
+#include "syscall.h"
 
 static Task kernel_task;
 static Task* current_task = 0;
@@ -54,6 +55,7 @@ Task* create_task(void (*entry_point)()) {
     new_task->state = TASK_READY;
     new_task->wake_tick = 0;
     init_task_fds(new_task);
+    new_task->cwd = current_task ? current_task->cwd : vfs_root;
 
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
@@ -90,22 +92,20 @@ Task* create_user_task(void (*entry_point)()) {
     
     // 스택 초기화
     unsigned int* kernel_stack_top = (unsigned int*)((unsigned int)kernel_stack_mem + TASK_STACK_SIZE);
-    unsigned int* user_stack_top = (unsigned int*)(USER_STACK_TOP);
 
-    user_stack_top[-1] = (unsigned int)user_exit;
     vmm_switch_page_directory(current_task->cr3);
     
     // 커널 스택에 저장할 유저 태스크 복귀 초기 정보
     // 이후에는 인터럽트시 자동으로 저장됨
     // iret 프레임 (user_task_trampoline의 iret이 꺼내먹을 5개)
     kernel_stack_top[-1] = 0x23;                      // User SS
-    kernel_stack_top[-2] = (unsigned int)(user_stack_top-1); // User ESP
+    kernel_stack_top[-2] = USER_STACK_TOP;            // User ESP
     kernel_stack_top[-3] = 0x0202;                    // EFLAGS (IF=1 인터럽트 허용)
     kernel_stack_top[-4] = 0x1B;                      // User CS (0x18 | 3)
     kernel_stack_top[-5] = (unsigned int)entry_point; // User EIP
 
     // switch_context 프레임 (switch_context가 꺼내먹을 부분)
-    kernel_stack_top[-6] = (unsigned int)user_task_trampoline; // ret이 점프할 주소!
+    kernel_stack_top[-6] = (unsigned int)user_task_trampoline; // ret이 점프할 주소
     kernel_stack_top[-7] = 0x0202;                    // popfd가 복원할 EFLAGS
     
     // popa가 복원할 8개 레지스터 (8 ~ 15번)
@@ -124,6 +124,7 @@ Task* create_user_task(void (*entry_point)()) {
     new_task->state = TASK_READY;
     new_task->wake_tick = 0;
     init_task_fds(new_task);
+    new_task->cwd = current_task ? current_task->cwd : vfs_root;
 
     // 원형 연결 리스트에 추가
     new_task->next = current_task->next;
@@ -132,6 +133,7 @@ Task* create_user_task(void (*entry_point)()) {
     return new_task;
 }
 
+// 유저 프로세스 생성(파일 읽어서 실행)
 Task* create_user_process(const char* filepath) {
     // 파일 읽기
     vfs_node file_node;
@@ -188,6 +190,8 @@ void init_tasking() {
     kernel_task.wake_tick = 0;
     init_task_fds(&kernel_task);
     kernel_task.next = &kernel_task; 
+    // 커널 태스크의 현재 작업 디렉터리를 루트로 설정
+    vfs_resolve_path("/", &kernel_task.cwd);
     current_task = &kernel_task;
 }
 
@@ -311,18 +315,6 @@ void exit_task() {
     while (true) {
         __asm__ __volatile__ ("hlt");
     }
-}
-
-// syscall wrapper
-void user_exit() {
-    __asm__ __volatile__ (
-        "int $0x80"
-        :
-        : "a"(3) // SYS_EXIT (3번)
-        : "memory"
-    );
-    // 혹시라도 스케줄링 전까지 CPU가 머무를 경우를 대비
-    while (true) { }
 }
 
 void task_dump() {

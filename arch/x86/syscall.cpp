@@ -1,5 +1,4 @@
 #include "syscall.h"
-#include "vga.h"
 #include "timer.h"
 #include "task.h"
 #include "file.h"
@@ -118,6 +117,49 @@ unsigned int sys_get_tick() {
         "int $0x80"
         : "=a"(ret)
         : "a"(SYS_GETTICK)
+        : "memory"
+    );
+    return ret;
+}
+
+// syscall wrapper
+void sys_exit() {
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(SYS_EXIT)
+        : "memory"
+    );
+    // 혹시라도 스케줄링 전까지 CPU가 머무를 경우를 대비
+    while (true) { }
+}
+
+void sys_sleep(unsigned int delay_ticks) {
+    __asm__ __volatile__ (
+        "int $0x80"
+        : 
+        : "a"(SYS_SLEEP), "b"(delay_ticks)
+        : "memory"
+    );
+}
+
+int sys_open(const char* path) {
+    int ret;
+    __asm__ __volatile__ (
+        "int $0x80"
+        : "=a"(ret)
+        : "a"(SYS_OPEN), "b"(path)
+        : "memory"
+    );
+    return ret;
+}
+
+int sys_close(int fd) {
+    int ret;
+    __asm__ __volatile__ (
+        "int $0x80"
+        : "=a"(ret)
+        : "a"(SYS_CLOSE), "b"(fd)
         : "memory"
     );
     return ret;

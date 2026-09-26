@@ -12,7 +12,6 @@ struct vfs_node {
 };
 
 extern vfs_node vfs_root;
-extern vfs_node current_dir;
 
 void vfs_init();
 int vfs_lookup(const vfs_node* dir_node, const char* name, vfs_node* out_node);

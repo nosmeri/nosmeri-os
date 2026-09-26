@@ -1,0 +1,83 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-m32",
+      "-ffreestanding",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-fno-exceptions",
+      "-fno-rtti",
+      "-fno-use-cxa-atexit",
+      "-Iarch/x86",
+      "-Idrivers",
+      "-Imm",
+      "-Ilib",
+      "-Ishell",
+      "-Itask",
+      "-Ifs",
+      "-c",
+      "-o",
+      "build/arch/x86/syscall.o",
+      "arch/x86/syscall.cpp"
+    ],
+    "directory": "/home/nosmeri/01_Projects/01_System_OS/pcr-os",
+    "file": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/arch/x86/syscall.cpp",
+    "output": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/build/arch/x86/syscall.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-m32",
+      "-ffreestanding",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-fno-exceptions",
+      "-fno-rtti",
+      "-fno-use-cxa-atexit",
+      "-Iarch/x86",
+      "-Idrivers",
+      "-Imm",
+      "-Ilib",
+      "-Ishell",
+      "-Itask",
+      "-Ifs",
+      "-c",
+      "-o",
+      "build/shell/shell.o",
+      "shell/shell.cpp"
+    ],
+    "directory": "/home/nosmeri/01_Projects/01_System_OS/pcr-os",
+    "file": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/shell/shell.cpp",
+    "output": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/build/shell/shell.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-m32",
+      "-ffreestanding",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-fno-exceptions",
+      "-fno-rtti",
+      "-fno-use-cxa-atexit",
+      "-Iarch/x86",
+      "-Idrivers",
+      "-Imm",
+      "-Ilib",
+      "-Ishell",
+      "-Itask",
+      "-Ifs",
+      "-c",
+      "-o",
+      "build/fs/vfs.o",
+      "fs/vfs.cpp"
+    ],
+    "directory": "/home/nosmeri/01_Projects/01_System_OS/pcr-os",
+    "file": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/fs/vfs.cpp",
+    "output": "/home/nosmeri/01_Projects/01_System_OS/pcr-os/build/fs/vfs.o"
+  }
+]

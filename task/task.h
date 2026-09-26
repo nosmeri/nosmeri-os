@@ -26,6 +26,7 @@ struct Task {
     unsigned int wake_tick;
     Task* next;                   // 원형 연결 리스트(Circular Linked List)용 포인터
     File* fd_table[MAX_FD];
+    vfs_node cwd;
 };
 
 void task_sleep(unsigned int ms);
@@ -39,5 +40,4 @@ void task_yield();
 void schedule();
 int kill_task(unsigned int pid);
 void exit_task();
-void user_exit();
 void task_dump();

@@ -7,7 +7,7 @@
 #include "heap.h"
 #include "task.h"
 #include "vfs.h"
-
+/*
 static const unsigned char sample_hello_bin[] = {
     0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x25, 0x00, 0x00, 0x40, 0xCD, 0x80,
     0xB8, 0x04, 0x00, 0x00, 0x00, 0xBB, 0xE8, 0x03, 0x00, 0x00, 0xCD, 0x80,
@@ -33,7 +33,7 @@ static const unsigned char sample_bad_bin[] = {
     0x61, 0x74, 0x74, 0x65, 0x6D, 0x70, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x43,
     0x4C, 0x49, 0x20, 0x69, 0x6E, 0x73, 0x74, 0x72, 0x75, 0x63, 0x74, 0x69,
     0x6F, 0x6E, 0x2E, 0x2E, 0x2E, 0x0A, 0x00
-};
+};*/
 
 
 void spinner() {
@@ -78,17 +78,18 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
     init_heap();
     print_string(" Done.\n");
 
+    // 가상 파일 시스템 초기화
+    print_string("Initializing VFS...");
+    vfs_init();
+    print_string(" Done.\n");
+
     // 멀티태스킹 초기화
     print_string("Initializing Task...");
     init_tasking();
     create_task(spinner);
     print_string(" Done.\n");
 
-    print_string("Initializing VFS...");
-    vfs_init();
-    print_string(" Done.\n");
-
-    // 디스크에 /hello.bin 파일이 없으면 자동 생성 및 저장
+    /*
     vfs_node check_node;
     if (vfs_resolve_path("/hello.bin", &check_node) != 0) {
         vfs_node hello_file;
@@ -102,7 +103,7 @@ extern "C" void kernel_main(unsigned int magic, multiboot_info* mbi) {
         if (vfs_create(&vfs_root, "bad.bin", &bad_file) == 0) {
             vfs_write(&bad_file, sample_bad_bin, sizeof(sample_bad_bin));
         }
-    }
+    }*/
 
 
 
