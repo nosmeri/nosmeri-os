@@ -214,7 +214,12 @@ void task_sleep(unsigned int ms) {
     current_task->wake_tick = get_tick() + ticks;
     current_task->state = TASK_SLEEPING;
 
-    schedule();
+    while (current_task->state == TASK_SLEEPING) {
+        schedule();
+        if (current_task->state == TASK_SLEEPING) {
+            __asm__ __volatile__ ("sti; hlt");
+        }
+    }
 }
 
 // 원형 리스트를 돌며 슬립 상태인 태스크 체크
@@ -309,10 +314,11 @@ int kill_task(unsigned int pid) {
 
 void exit_task() {
     current_task->state = TASK_DEAD;
+    __asm__ __volatile__ ("sti");
     schedule();
 
     while (true) {
-        __asm__ __volatile__ ("hlt");
+        __asm__ __volatile__ ("sti; hlt");
     }
 }
 
