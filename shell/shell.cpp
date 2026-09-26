@@ -68,7 +68,7 @@ static const int num_commands = sizeof(commands) / sizeof(commands[0]);
 // 쉘 프롬프트 출력
 void print_prompt() {
     char path_buf[256];
-    vfs_getcwd(path_buf, sizeof(path_buf));
+    sys_getcwd(path_buf, sizeof(path_buf));
     shell_print(path_buf);
     shell_print("$ ");
 }
@@ -229,7 +229,7 @@ static void cmd_cd(const char* arg) {
     while (*arg == ' ') arg++;
     if (*arg == '\0') {
         shell_print("Usage: cd <path>\n");
-    } else if (vfs_cd(arg) != 0) {
+    } else if (sys_chdir(arg) != 0) {
         shell_print("Directory not found\n");
     }
 }
@@ -251,7 +251,7 @@ static void cmd_ls(const char* arg) {
 static void cmd_pwd(const char* arg) {
     (void)arg;
     char path_buf[256];
-    if (vfs_getcwd(path_buf, sizeof(path_buf)) == 0) {
+    if (sys_getcwd(path_buf, sizeof(path_buf)) == 0) {
         shell_print(path_buf);
         shell_print("\n");
     } else {

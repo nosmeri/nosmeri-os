@@ -8,7 +8,6 @@
 #include "pmm.h"
 #include "vfs.h"
 #include "file.h"
-#include "syscall.h"
 
 static Task kernel_task;
 static Task* current_task = 0;

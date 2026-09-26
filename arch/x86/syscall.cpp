@@ -3,18 +3,13 @@
 #include "task.h"
 #include "file.h"
 #include "heap.h"
+#include "vfs.h"
 
 // C++ 시스템 콜 핸들러 본체
 // boot.asm의 isr80에서 push esp 한 포인터가 regs로 전달됨
 extern "C" void syscall_handler(Registers* regs) {
     Task* current_task = get_current_task();
     switch (regs->eax) {
-        case SYS_GETTICK: {
-            // 반환값은 eax 레지스터에 저장
-            regs->eax = get_tick();
-            break;
-        }
-
         case SYS_EXIT: {
             // 현재 태스크를 DEAD 상태로 변경
             exit_task();
@@ -28,6 +23,49 @@ extern "C" void syscall_handler(Registers* regs) {
             break;
         }
 
+        case SYS_YIELD: {
+            schedule();
+            break;
+        }
+
+        case SYS_GETTICK: {
+            // 반환값은 eax 레지스터에 저장
+            regs->eax = get_tick();
+            break;
+        }
+
+        case SYS_READ: { // read(int fd, void* buf, unsigned int count)
+            int fd = (int)regs->ebx;
+            void* buf = (void*)regs->ecx;
+            unsigned int count = regs->edx;
+            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+                regs->eax = -1;
+                break;
+            }
+            File* file = current_task->fd_table[fd];
+            if (!file->ops || !file->ops->read) {
+                regs->eax = -1; // 읽기 미지원 (예: stdout에 read 시도)
+                break;
+            }
+            regs->eax = file->ops->read(file, buf, count);
+            break;
+        }
+        case SYS_WRITE: { // write(int fd, const void* buf, unsigned int count)
+            int fd = (int)regs->ebx;
+            const void* buf = (const void*)regs->ecx;
+            unsigned int count = regs->edx;
+            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+                regs->eax = -1;
+                break;
+            }
+            File* file = current_task->fd_table[fd];
+            if (!file->ops || !file->ops->write) {
+                regs->eax = -1; // 쓰기 미지원 (예: stdin에 write 시도)
+                break;
+            }
+            regs->eax = file->ops->write(file, buf, count);
+            break;
+        }
         case SYS_OPEN: {
             char* path = (char*)regs->ebx;
             vfs_node node;
@@ -72,45 +110,60 @@ extern "C" void syscall_handler(Registers* regs) {
             regs->eax = 0; // success
             break;
         }
-        case SYS_READ: { // read(int fd, void* buf, unsigned int count)
-            int fd = (int)regs->ebx;
-            void* buf = (void*)regs->ecx;
-            unsigned int count = regs->edx;
-            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
+        case SYS_GETCWD: {
+            char* buf = (char*)regs->ebx;
+            unsigned int size = regs->ecx;
+            if (!buf || size == 0) {
                 regs->eax = -1;
                 break;
             }
-            File* file = current_task->fd_table[fd];
-            if (!file->ops || !file->ops->read) {
-                regs->eax = -1; // 읽기 미지원 (예: stdout에 read 시도)
-                break;
+            int len = vfs_getcwd(buf, size);
+            if (len < 0) {
+                regs->eax = -1;
+            } else {
+                regs->eax = len;
             }
-            regs->eax = file->ops->read(file, buf, count);
             break;
         }
-        case SYS_WRITE: { // write(int fd, const void* buf, unsigned int count)
-            int fd = (int)regs->ebx;
-            const void* buf = (const void*)regs->ecx;
-            unsigned int count = regs->edx;
-            if (fd < 0 || fd >= MAX_FD || !current_task->fd_table[fd]) {
-                regs->eax = -1;
-                break;
-            }
-            File* file = current_task->fd_table[fd];
-            if (!file->ops || !file->ops->write) {
-                regs->eax = -1; // 쓰기 미지원 (예: stdin에 write 시도)
-                break;
-            }
-            regs->eax = file->ops->write(file, buf, count);
+        case SYS_CHDIR: {
+            char* path = (char*)regs->ebx;
+            int ret = vfs_cd(path);
+            regs->eax = ret;
             break;
         }
         default:
-            // 알 수 없는 시스템 콜 번호
             break;
     }
 }
 
-// 2번 시스템 콜(SYS_GETTICK)을 호출하는 함수
+void sys_exit() {
+    __asm__ __volatile__ (
+        "int $0x80"
+        :
+        : "a"(SYS_EXIT)
+        : "memory"
+    );
+    while (true) { }
+}
+
+void sys_sleep(unsigned int delay_ticks) {
+    __asm__ __volatile__ (
+        "int $0x80"
+        : 
+        : "a"(SYS_SLEEP), "b"(delay_ticks)
+        : "memory"
+    );
+}
+
+void sys_yield() {
+    __asm__ __volatile__ (
+        "int $0x80"
+        : 
+        : "a"(SYS_YIELD)
+        : "memory"
+    );
+}
+
 unsigned int sys_get_tick() {
     unsigned int ret;
     __asm__ __volatile__ (
@@ -122,25 +175,26 @@ unsigned int sys_get_tick() {
     return ret;
 }
 
-// syscall wrapper
-void sys_exit() {
+int sys_read(int fd, void* buf, unsigned int count) {
+    int ret;
     __asm__ __volatile__ (
         "int $0x80"
-        :
-        : "a"(SYS_EXIT)
+        : "=a"(ret)
+        : "a"(SYS_READ), "b"(fd), "c"(buf), "d"(count)
         : "memory"
     );
-    // 혹시라도 스케줄링 전까지 CPU가 머무를 경우를 대비
-    while (true) { }
+    return ret;
 }
 
-void sys_sleep(unsigned int delay_ticks) {
+int sys_write(int fd, const void* buf, unsigned int count) {
+    int ret;
     __asm__ __volatile__ (
         "int $0x80"
-        : 
-        : "a"(SYS_SLEEP), "b"(delay_ticks)
+        : "=a"(ret)
+        : "a"(SYS_WRITE), "b"(fd), "c"(buf), "d"(count)
         : "memory"
     );
+    return ret;
 }
 
 int sys_open(const char* path) {
@@ -165,24 +219,23 @@ int sys_close(int fd) {
     return ret;
 }
 
-// arch/x86/syscall.cpp 하단
-int sys_write(int fd, const void* buf, unsigned int count) {
+int sys_getcwd(char* buf, unsigned int size) {
     int ret;
     __asm__ __volatile__ (
         "int $0x80"
         : "=a"(ret)
-        : "a"(SYS_WRITE), "b"(fd), "c"(buf), "d"(count)
+        : "a"(SYS_GETCWD), "b"(buf), "c"(size)
         : "memory"
     );
     return ret;
 }
 
-int sys_read(int fd, void* buf, unsigned int count) {
+int sys_chdir(const char* path) {
     int ret;
     __asm__ __volatile__ (
         "int $0x80"
         : "=a"(ret)
-        : "a"(SYS_READ), "b"(fd), "c"(buf), "d"(count)
+        : "a"(SYS_CHDIR), "b"(path)
         : "memory"
     );
     return ret;
